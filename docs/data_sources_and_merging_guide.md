@@ -87,7 +87,7 @@ These are Statistik Austria's INSPIRE downloads (an EU open-data standard), publ
 ### 2c. Origin and language
 
 - **Country of birth / citizenship.** From the population register, published by MA 23. Zählbezirk level is only binary (Austria vs abroad), in 3 age groups. District level has 4 groups. For EU vs outside EU at fine scale, use the Eurostat 1 km census grid (2021).
-- **Language.** There are **no residential language data**. The 2001 census was the last to ask about everyday language; since 2011 the census is built from registers that don't record it. The only proxy is pupils' home language at schools, published by district: about 49% non-German in Vienna, over two thirds in Favoriten, Ottakring and Simmering. Neither Pennerstorfer paper used language.
+- **Language.** There are **no residential language data**. The 2001 census was the last to ask about everyday language; since 2011 the census is built from registers that do not record it. The only proxy is pupils' home language at schools, published by district: about 49% non-German in Vienna, over two thirds in Favoriten, Ottakring and Simmering. Neither Pennerstorfer paper used language.
 
 ### 2d. Status proxies now possible at Zählsprengel level (free)
 
@@ -105,7 +105,7 @@ These are new and validated only by construction. Correlate them with district e
 ### 3a. Before any join
 1. **One projection, equal-area.** Use EPSG:3035 (Europe-wide equal-area projection, metres), which is our grid's native system. Zählsprengel arrive in EPSG:31287 (Austrian Lambert) and must be reprojected.
 2. **Clean geometries.** Run `make_valid()`; dissolve multipart duplicates.
-3. **Check IDs and coverage.** Don't assume codes nest (see §2a). Check totals before and after every step.
+3. **Check IDs and coverage.** Do not assume codes nest (see §2a). Check totals before and after every step.
 
 ### 3b. Counts vs rates
 | Type | Examples | Moving to **smaller** units | Moving to **larger** units |
@@ -151,7 +151,7 @@ One table, one row per variable:
 
 Scripts are in `Data/socioeconomic/scripts/`. Run them from `Data/socioeconomic` with `python -I`. They produced the files in `raw/statistik_inspire/vienna_extracts/` and `processed/`; the national INSPIRE zips they read (0.15–0.8 GB) are not in the repository.
 
-1. `parse_inspire.py <zip> <out.csv> zsp|grid` reads the GML (the EU's XML format for map data) directly from the zip and keeps Vienna only. Extracted, the full files are 0.15–0.8 GB each, so don't unzip them.
+1. `parse_inspire.py <zip> <out.csv> zsp|grid` reads the GML (the EU's XML format for map data) directly from the zip and keeps Vienna only. Extracted, the full files are 0.15–0.8 GB each, so do not unzip them.
 2. `build_inspire_tables.py`:
    - turns the files into Zählsprengel tables, adds employment shares and the overlap link to Zählbezirke;
    - spreads 100 m population onto the 250 m grid by area;
@@ -174,4 +174,4 @@ Scripts are in `Data/socioeconomic/scripts/`. Run them from `Data/socioeconomic`
 | Child-weighted mean 2SFCA | 75.7 | 75.9 |
 | Moran's I, travel time (Zählbezirke) | 0.36 | 0.27 |
 
-Most previously "underserved" children were phantom children in uninhabited peripheral cells. This is a concrete example of the point in §3d: a demand model's spatial assumptions can drive a headline result.
+Most of the children previously classified as underserved had been allocated to uninhabited peripheral cells. This is a concrete example of the point in §3d: a demand model's spatial assumptions can drive a headline result.

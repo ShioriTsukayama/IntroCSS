@@ -10,7 +10,7 @@
 # | `origin_destination_matrices_1min/2026-10-20_HHMM.npz`: one 6,950 × 1,682 matrix per departure minute (minutes; NaN = no trip within 30 min) | `accessibility_analysis.ipynb` |
 # | `nearest_site_time_by_cell.csv`: time to the nearest site per cell, summarised over the 60 departures | `access_maps.ipynb` |
 #
-# **You probably don't need to run the routing.** The finished matrices are on the repository's release: `python get_data.py` downloads them, and this notebook then only checks them and rebuilds the small summary files. Routing from scratch took 3.3 hours (about 3 minutes per departure); it is resumable, so you can stop and restart it.
+# **Re-running the routing is not required.** The completed matrices are published as a release of the repository: `python get_data.py` downloads them, after which this notebook only verifies them and rebuilds the summary files. Routing from scratch took 3.3 hours (about 3 minutes per departure); the procedure is resumable and may be interrupted and restarted.
 #
 # **Routing set-up** (fixed for the whole project)
 # | | |

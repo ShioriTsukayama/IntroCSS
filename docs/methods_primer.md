@@ -25,7 +25,7 @@
 | **Supply / demand** | Supply = childcare places. Demand = children who might use them. |
 | **OD matrix** | *Origin–destination* matrix: travel time from every cell (row) to every site (column). Ours is 6,950 × 1,682 per departure, for **60 one-minute departures** (07:30–08:29). |
 | **GTFS** | The public-transport timetable format. Our routing uses the timetable, so "reliability" = timetable variability (waiting, transfers), not real delays. |
-| **Child-weighted** | Averages where each cell counts by how many children live there, so empty parks don't count. |
+| **Child-weighted** | Averages where each cell counts by how many children live there, so that uninhabited cells carry no weight. |
 | **NACE** | EU classification of economic sectors (A = agriculture … U = extraterritorial). |
 
 ---
@@ -62,7 +62,7 @@ print(A * 100)                     # [50. 70. 20.] places per 100 children
 ```
 Cell 2 scores highest because it reaches *both* sites; cell 3 lowest because it reaches only the small site.
 
-**Is it hard?** No. With an OD matrix it is the four lines above. It is in `accessibility_analysis.ipynb` §2 (with Gaussian distance decay).
+**Implementation.** Given an OD matrix, it requires only the four lines above. It is in `accessibility_analysis.ipynb` §2 (with Gaussian distance decay).
 
 ### 2d. Variants
 | Variant | What changes | Use for us |
@@ -95,7 +95,7 @@ print(A_r * 100)                  # [61.5 52.5 17.4]
 
 ### 2e. Reliable vs average access (DV2R vs DV2), and why the average does not change
 * **DV2, average:** compute the 2SFCA separately at each departure minute, then average the 60 scores.
-* **DV2R, reliable (primary):** for each cell–site pair, take the **90th-percentile** travel time over the departures (the time you can count on 9 times in 10; transport research calls it *planning time*), then compute one 2SFCA. A pair with no route at more than 10% of departures gets weight 0.
+* **DV2R, reliable (primary):** for each cell–site pair, take the **90th-percentile** travel time over the departures (the time that can be relied on at 9 of 10 departures; transport research calls it *planning time*), then compute one 2SFCA. A pair with no route at more than 10% of departures gets weight 0.
 
 Toy: 3 cells, 2 sites (40 places each), 10 departures. Cell 3 reaches site B by a bus: 6 min normally, but 17 min at the 3 departures that just miss it.
 ```python
@@ -123,11 +123,11 @@ np.average(dv2, weights=children), np.average(dv2r, weights=children)   # 80.0, 
 
 | Input | Have it? | Quality |
 |---|---|---|
-| Site locations | ✅ 1,682 | exact |
-| Capacity | ✅ places by group type | 133 sites missing capacity |
-| Provider type | ✅ public / private (+ operator name) | good |
-| Children per cell | ✅ official ZSP counts, placed with official 100 m residents | real totals, modelled placement (§3) |
-| Travel times | ✅ OD matrices from `routing.ipynb` (60 departures) | timetable-based |
+| Site locations | Yes: 1,682 | exact |
+| Capacity | Yes: places by group type | 133 sites missing capacity |
+| Provider type | Yes: public / private (+ operator name) | good |
+| Children per cell | Yes: official ZSP counts, placed with official 100 m residents | real totals, modelled placement (§3) |
+| Travel times | Yes: OD matrices from `routing.ipynb` (60 departures) | timetable-based |
 
 So **yes, we can do a Pennerstorfer-style 2SFCA**. The weak point is not the 2SFCA but the **SES variables** we regress it on.
 
@@ -148,7 +148,7 @@ residents = pd.Series([0, 300, 700], index=["park", "c1", "c2"])
 zone_children * residents / residents.sum()   # park 0, c1 30, c2 70
 # naive equal split would give 33 each, putting 33 children in the park
 ```
-**Is it sound?** Yes, it's the standard method, and our version is about as good as free data allows:
+**Is it sound?** It is the standard method, and this implementation is close to the best that open data allow:
 * the **totals** are official register counts per ZSP (not estimates);
 * the helper layer is the **official** 100 m resident grid (not modelled);
 * the only assumption is that *within one ZSP*, children live where residents live. A ZSP has on average only ~2–3 populated 250 m cells, so little is being "spread".
@@ -170,7 +170,7 @@ np.average(cells["minutes"], weights=cells["children"])     # 8.0  – what the 
 ```
 
 ### 4b. Spearman correlation (ρ)
-Correlation of **ranks**, so one outlier can't dominate and the relation needn't be linear. Range −1 … +1.
+Correlation of **ranks**, so one outlier cannot dominate and the relation need not be linear. Range −1 … +1.
 ```python
 from scipy.stats import spearmanr, pearsonr
 x = [1, 2, 3, 4, 100]; y = [2, 4, 6, 8, 10]
@@ -220,7 +220,7 @@ Splits Moran's I by location to map **clusters**: *High-High* (high values surro
 ## 6. Regression issues
 
 ### 6a. Clustered standard errors
-If an SES variable is measured per district, all cells in a district share the same value. You really have **23 observations of it**, not 6,950. Clustering tells the regression this.
+If an SES variable is measured per district, all cells in a district share the same value. There are effectively **23 observations of it**, not 6,950. Clustering tells the regression this.
 ```python
 import statsmodels.formula.api as smf
 # 23 districts × 30 cells; education is a district value
@@ -231,10 +231,10 @@ naive.bse["edu"], cl.bse["edu"]   # 0.047 vs 0.167 – honest uncertainty is 3.5
 This is exactly what Pennerstorfer did ("residuals clustered at grid cell / SED / district").
 
 ### 6b. Ecological fallacy
-Area-level patterns don't describe individuals. "Children in high-education areas have more access" ≠ "children of graduates have more access".
+Area-level patterns do not describe individuals. "Children in high-education areas have more access" ≠ "children of graduates have more access".
 
 ### 6c. MAUP (modifiable areal unit problem)
 Results can change with the size and shape of the units. Check key results at two scales (e.g. cell and ZBZ).
 
 ### 6d. Uniform granularity is **not** required
-Mixing levels is normal (Pennerstorfer mixed 250 m cells, ZSPs and districts). The rules: assign coarse values down (§3a), cluster errors at the coarse level (§6a), and don't over-interpret coarse variables.
+Mixing levels is normal (Pennerstorfer mixed 250 m cells, ZSPs and districts). The rules: assign coarse values down (§3a), cluster errors at the coarse level (§6a), and do not over-interpret coarse variables.

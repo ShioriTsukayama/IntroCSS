@@ -42,7 +42,7 @@ Pennerstorfer did not build the measure; DataScience did, with the hedonic metho
 | 1 | **Raw data** | *Method:* property transactions and/or offers with price, size, characteristics and location | 5,347 willhaben rental adverts, scraped once | We have no purchase data. Rent is a flow, price a stock; both capitalise location value |
 | 2 | **Price concept** | **Stated:** purchase price per m² | Monthly asking rent ÷ living area | Rents are partly regulated in Vienna (*Richtwert*); prices are not. Rent captures the *current* entry cost to a neighbourhood |
 | 3 | **Locating each observation** | *Method:* address-level geocodes | willhaben's coordinates; precision flag `LOCATION_QUALITY`; only address/street-precise kept (622 postcode-only dropped) | Same principle: an observation must sit where the flat is, not at an area centre |
-| 4 | **Cleaning** | Not described | Explicit rules (§4.2): plausible area and €/m², 1–99th percentile trim, duplicate adverts removed → 4,071 | Adverts contain typos and multi-agent duplicates that transaction registers don't |
+| 4 | **Cleaning** | Not described | Explicit rules (§4.2): plausible area and €/m², 1–99th percentile trim, duplicate adverts removed → 4,071 | Adverts contain typos and multi-agent duplicates that transaction registers do not |
 | 5 | **Removing the flat mix (standardisation)** | **Stated:** "standardized apartment". *Method:* hedonic regression on size, age, condition, floor, outdoor space, etc. | Hedonic OLS of log €/m² on size, rooms, floor, outdoor space, new-build, private vs agency, flat type (R² = 0.25) | Same idea. We have fewer traits (no building age or condition), so some flat quality remains in our location signal |
 | 6 | **Separating location from flat** | *Method:* location enters the hedonic model directly (smooth spatial terms / area effects) | Location is what the hedonic model leaves over (the residual), averaged in space in step 7 | Two-stage instead of one model. Simpler and transparent; slightly less efficient |
 | 7 | **Spatial unit and smoothing** | **Stated:** value per SED (Zählsprengel); *method:* the model borrows strength across space | Gaussian kernel over the **20 nearest listings** at each Zählsprengel's interior point; k chosen by leave-one-out error; median radius 502 m | Both borrow strength from neighbours; ours does it openly, with a bandwidth you can report |
@@ -208,7 +208,7 @@ Scripts are in `Data/socioeconomic/scripts/`; run them from `Data/socioeconomic`
 | Order | Rule | Removed | Left | Reason |
 |---|---|---|---|---|
 | | Scraped | | 5,347 | |
-| 1 | Coordinates, rent and area all present | 149 | 5,198 | Can't place or normalise |
+| 1 | Coordinates, rent and area all present | 149 | 5,198 | Cannot place or normalise |
 | 2 | `LOCATION_QUALITY` ≥ 0.75 | 622 | 4,576 | Postcode-centre points stack on one spot, like Onur's district centres |
 | 3 | Area 15–300 m² | 35 | 4,541 | Parking spaces, storage, whole buildings, typos |
 | 4 | € per m² between 5 and 60 | 13 | 4,528 | Typos (annual rent, price per m² entered as price) |
@@ -341,7 +341,7 @@ Source: `Onur Code/Walkthrough.ipynb` cells 0–15; output `Onur Code/Willhaben_
 
 1. **Browser automation:** Selenium opens Firefox at the Vienna rental search. Cookies are rejected by hand and the page is switched to its mobile layout in the inspector.
 2. **Paging:** 153 pages × 30 listings, using a URL with room filters, `PRICE_FROM=300`, a session id `sfId` and `isNavigation=true`, all three disallowed by robots.txt. Each page is scrolled pixel by pixel, then there is a 1–1.6 s pause.
-3. **Extraction by CSS class:** address and price text are read from auto-generated style classes (`.Text-sc-10o2fdq-0.iiBbPS`, `.Box-sc-wfmb7k-0.hsbsqk`). If a page doesn't yield exactly 30 of each, **the page is skipped**. These classes change when the site is rebuilt.
+3. **Extraction by CSS class:** address and price text are read from auto-generated style classes (`.Text-sc-10o2fdq-0.iiBbPS`, `.Box-sc-wfmb7k-0.hsbsqk`). If a page does not yield exactly 30 of each, **the page is skipped**. These classes change when the site is rebuilt.
 4. **Price cleaning:** `€` is stripped and German number formatting converted, giving `Price_Clean`, the total monthly rent.
 5. **Geocoding:** each text address goes to the Google Geocoding API; the first result's coordinates are kept, and failures are dropped. **1,170 of 3,616 (32%) addresses have no street** (e.g. "1100 Wien, 10. Bezirk, Favoriten"), so Google returns the **district centre**, and those listings stack there (map 02a).
 6. **Use in Onur's project:** rent heat map (2-D histogram, Gaussian blur), nearest transit stop, cluster medians. No adjustment for size or flat type.

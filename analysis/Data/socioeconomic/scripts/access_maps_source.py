@@ -1,9 +1,9 @@
 # %% [markdown]
 # # Childcare access in Vienna: maps
 #
-# **What this notebook does.** Draws the presentation maps of the project: smoothed travel-time surfaces, reliability, the straight-line vs. timetable comparison, and the reliable network 2SFCA (**DV2R**, the primary access measure) set against neighbourhood status. Every map shares one look: Vienna on a pale background, the tram/bus/U-Bahn network in black, the Danube and lakes in navy, childcare sites as small diamonds.
+# **Purpose.** This notebook produces the presentation maps of the project: smoothed travel-time surfaces, the redistribution of access under the reliability requirement, the comparison of straight-line and timetable-based proximity, and the reliable network 2SFCA (**DV2R**, the primary access measure) in relation to neighbourhood status. All maps share a common style: Vienna on a pale background, the tram/bus/U-Bahn network in black, the Danube and lakes in navy, childcare sites as small diamonds.
 #
-# **Runs in about 20 seconds, with no routing.** It only reads files already in this repository:
+# **Inputs.** The notebook runs in about 20 seconds and requires no routing. It reads only files already present in the repository:
 #
 # | Input | Made by |
 # |---|---|
@@ -14,7 +14,7 @@
 # | `outputs/gtfs_route_lines_vienna.gpkg`, `outputs/gtfs_stops_vienna.csv` | cached from the Wiener Linien GTFS |
 # | `outputs/vienna_natural_water.geojson`, `outputs/vienna_donau_rivers.geojson` | cached from OpenStreetMap (OSMnx) |
 #
-# **About the smoothed surfaces.** Maps 1–6 are *visual estimates*: cell values are binned to a fine raster and blurred with a Gaussian filter (empty bins do not count as zero), then cut into bands. They are not exact street-network isochrones. Use the cell maps in `accessibility_analysis.ipynb` for anything you quote.
+# **About the smoothed surfaces.** Maps 1–6 are *visual estimates*: cell values are binned to a fine raster and blurred with a Gaussian filter (empty bins do not count as zero), then cut into bands. They are not exact street-network isochrones. Quantities reported in the text should be taken from the cell-level results in `accessibility_analysis.ipynb`.
 #
 # Figures are written to `outputs/maps/`.
 
@@ -71,7 +71,7 @@ print(f"{len(grid):,} cells, {len(kids):,} with children ({kids.children_u6.sum(
 # ## 2. Map style
 # * `base(ax)`: pale Vienna on a grey-blue background.
 # * `overlays(ax)`: transit lines, Danube, lakes, childcare sites, stops, city outline.
-# * `surface(ax, values, weights)`: the smoothed raster. With `weights` (children) it is a **child-weighted** average, so parks and industrial areas do not pull the surface around; bins with almost no children are left blank.
+# * `surface(ax, values, weights)`: the smoothed raster. With `weights` (children) it is a **child-weighted** average, so that parks and industrial areas do not influence the surface; bins with almost no children are left blank.
 
 # %%
 BG, CITY_FILL, OUTLINE = "#e8ebee", "#f6f7f4", "#263238"
@@ -152,8 +152,8 @@ time_cmap = ListedColormap(TIME_COLOURS); time_norm = BoundaryNorm(TIME_LEVELS, 
 TIME_TICKS = [2.5, 7.5, 12.5, (15 + CAP) / 2]
 
 # %% [markdown]
-# ## 3. Map 1: how far is the nearest childcare site?
-# Median, over the 60 departures, of the walk + public transport time to the **nearest** site, in four bands; thin lines mark 5, 10 and 15 minutes. All cells are used (not child-weighted), so it shows the city as a place, not where children live.
+# ## 3. Map 1: travel time to the nearest childcare site
+# Median, over the 60 departures, of the walk + public transport time to the **nearest** site, in four bands; thin lines mark 5, 10 and 15 minutes. All cells are used without child weighting, so the map describes the city as a whole rather than the residential distribution of children.
 
 # %%
 fig, ax = base()
@@ -166,7 +166,7 @@ title(ax, "Map 1  Morning travel time to the nearest childcare site",
 save(fig, "map1_nearest_site_median.png")
 
 # %% [markdown]
-# **Map 1b, continuous version.** The same surface without bands (wider blur, `sigma=10`): softer, good for slides; less exact.
+# **Map 1b, continuous version.** The same surface without bands and with stronger smoothing (`sigma=10`). It is suited to presentation slides but is less precise.
 
 # %%
 fig, ax = base()
@@ -180,8 +180,8 @@ title(ax, "Map 1b  Morning travel time to the nearest childcare site (continuous
 save(fig, "map1b_nearest_site_continuous.png")
 
 # %% [markdown]
-# ## 4. Map 2: who gains and who loses when parents plan for a bad morning?
-# **DV2R − DV2**: reliable access minus average access, in places per 100 children. A 2SFCA hands out all of the city's places, so requiring reliability does not shrink access overall, it **moves** it: blue areas gain places (their connections are dependable, so they keep their sites while rivals' unreliable trips drop out); orange areas lose places (their sites are reached by trams or buses whose timing varies). Child-weighted smoothing. (The nearest site itself barely moves: for 99% of children the 90th-percentile and median time to it are equal, because it is usually walkable.)
+# ## 4. Map 2: redistribution of access under the reliability requirement
+# **DV2R − DV2**: reliable access minus average access, in places per 100 children. Because a 2SFCA allocates all places in the city, the reliability requirement does not reduce access in aggregate but **redistributes** it. Areas shown in blue gain places: their connections are dependable, so they retain their sites while competing areas with unreliable connections drop out of the catchment. Areas shown in orange lose places, because their sites are reached by tram or bus services whose timing varies across the hour. Child-weighted smoothing. Travel time to the nearest site is almost unaffected: for 99% of children its 90th percentile equals its median, because the nearest site is usually within walking distance.
 
 # %%
 grid["reliability_shift"] = grid["dv2_reliable"] - grid["dv2_network"]
@@ -192,16 +192,16 @@ s_cmap = ListedColormap(S_COLOURS)
 fig, ax = base()
 bands(ax, smooth(grid["reliability_shift"].where(grid.children_u6 > 0), grid["children_u6"]), S_LEVELS, S_COLOURS, alpha=.82)
 overlays(ax)
-colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7), "DV2R − DV2: places per 100 children gained (blue) or lost (orange) by requiring reliability",
+colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7), "DV2R − DV2: change in places per 100 children (blue: gain; orange: loss)",
           [i + .5 for i in range(7)], ["< −15", "−15 to −8", "−8 to −3", "±3", "3 to 8", "8 to 15", "> 15"])
 lost = wmean(kids["reliability_shift"] < -3, kids.children_u6); gained = wmean(kids["reliability_shift"] > 3, kids.children_u6)
-title(ax, "Map 2  Planning for a bad morning moves access around",
-      f"{gained:.0%} of children gain more than 3 places per 100, {lost:.0%} lose more than 3")
+title(ax, "Map 2  Redistribution of access under the reliability requirement (DV2R − DV2)",
+      f"Child-weighted: {gained:.0%} of children gain more than 3 places per 100 children, {lost:.0%} lose more than 3")
 save(fig, "map2_reliability_shift.png")
 
 # %% [markdown]
-# ## 5. Map 3: the straight-line measure says "close", the timetable disagrees
-# Red cells are **within 500 m of a site** in a straight line (Pennerstorfer's catchment), yet fewer than 9 of the 60 departures reach any site within 15 minutes, because of rivers, rail lines, motorways or a missing connection. The orange line is the outer edge of all 500 m circles.
+# ## 5. Map 3: straight-line proximity and timetable-based access
+# Cells shown in red lie **within 500 m of a site** in a straight line (the catchment of Pennerstorfer & Pennerstorfer), yet fewer than 90% of the 60 departures reach any site within 15 minutes, owing to rivers, railway lines, motorways or missing connections. The orange line marks the outer boundary of all 500 m buffers.
 
 # %%
 buf500 = fac.geometry.buffer(500).union_all()
@@ -214,16 +214,16 @@ fa.plot(ax=ax, color="#c51b29", edgecolor="none", alpha=.8, zorder=8)
 gpd.GeoSeries(list(getattr(buf500, "geoms", [buf500])), crs=CRS).exterior.plot(ax=ax, color="#e66101", lw=1.6, zorder=9)
 overlays(ax)
 colourbar(fig, ax, time_cmap, time_norm, "Median time to the nearest childcare site (minutes)", TIME_TICKS, TIME_LABELS)
-ax.legend(handles=[Patch(color="#c51b29", alpha=.8, label=f"≤ 500 m straight line, but < 90% of departures within 15 min ({len(fa)} cells, {fa.children_u6.sum():,.0f} children)"),
+ax.legend(handles=[Patch(color="#c51b29", alpha=.8, label=f"Within 500 m (straight line), but fewer than 90% of departures within 15 min ({len(fa)} cells, {fa.children_u6.sum():,.0f} children)"),
                    Line2D([0], [0], color="#e66101", lw=1.6, label="Outer edge of the 500 m circles")],
           loc="upper left", fontsize=11, framealpha=.9)
-title(ax, "Map 3  Close on the map, far by transport")
+title(ax, "Map 3  Straight-line proximity and timetable-based access")
 save(fig, "map3_straight_line_vs_timetable.png")
 
 # %% [markdown]
-# ## 6. Map 4: DV2R, places per 100 children you can rely on
-# The primary access measure: reliable network 2SFCA (Gaussian catchment to 15 min on the 90th-percentile time). It already accounts for competition: a site's places are shared among all children who can reach it. Child-weighted smoothing; bands are the **child-weighted deciles**, so each colour holds roughly a tenth of children.
-# Sites are drawn by provider: blue = public (municipal), black = private / non-profit, size = places.
+# ## 6. Map 4: reliable network access (DV2R)
+# The primary access measure: the reliable network 2SFCA, with a Gaussian catchment of 15 minutes evaluated at the 90th-percentile travel time. The measure incorporates competition, since each site's places are shared among all children who can reach it. Child-weighted smoothing; the bands are **child-weighted deciles**, so that each colour represents approximately one tenth of children.
+# Sites are distinguished by provider (blue: public, municipal; black: private, predominantly non-profit) and scaled by the number of places.
 
 # %%
 def site_layer(ax):
@@ -252,8 +252,8 @@ title(ax, "Map 4  Reliable access to childcare (DV2R)",
 save(fig, "map4_dv2r_reliable_access.png")
 
 # %% [markdown]
-# ## 7. Map 5: who loses access at an unlucky departure? (DV3)
-# DV3 is the share of a cell's access lost when leaving at a bad minute (10th-percentile departure) instead of an average one. Child-weighted smoothing.
+# ## 7. Map 5: access lost at an unfavourable departure (DV3)
+# DV3 is the share of a cell's access that is lost at an unfavourable departure minute (the 10th-percentile departure) relative to the average departure. Child-weighted smoothing.
 
 # %%
 L_LEVELS = [-1, .02, .05, .10, .15, .25, 1]
@@ -262,15 +262,15 @@ l_cmap = ListedColormap(L_COLOURS); l_norm = BoundaryNorm(L_LEVELS, l_cmap.N)
 fig, ax = base()
 bands(ax, smooth(grid["dv3_reliability_loss"].where(grid.children_u6 > 0), grid["children_u6"]), L_LEVELS, L_COLOURS, alpha=.8)
 overlays(ax)
-colourbar(fig, ax, l_cmap, BoundaryNorm(list(range(len(L_LEVELS))), l_cmap.N), "DV3: share of access lost at a bad departure",
+colourbar(fig, ax, l_cmap, BoundaryNorm(list(range(len(L_LEVELS))), l_cmap.N), "DV3: share of access lost at an unfavourable departure",
           [i + .5 for i in range(len(L_LEVELS) - 1)], ["< 2%", "2–5%", "5–10%", "10–15%", "15–25%", "25%+"])
-title(ax, "Map 5  Access lost by leaving at an unlucky minute (DV3)",
+title(ax, "Map 5  Access lost at an unfavourable departure minute (DV3)",
       f"Child-weighted mean loss {wmean(kids.dv3_reliability_loss, kids.children_u6):.1%}")
 save(fig, "map5_dv3_reliability_loss.png")
 
 # %% [markdown]
-# ## 8. Map 6: public vs private provision
-# DV2R split by provider. Left: public (municipal) sites only; right: private and non-profit sites. Same colour scale. The analysis finds private access rises with neighbourhood status while public access leans the other way; this is where that shows.
+# ## 8. Map 6: public and private provision
+# DV2R split by provider. Left: public (municipal) sites only; right: private and non-profit sites. Same colour scale. In the regression analysis, access to private sites increases with neighbourhood status, whereas access to public sites is oriented towards lower-status areas; the map shows the spatial pattern underlying this result.
 
 # %%
 hi = np.nanpercentile(np.r_[kids.dv2r_public, kids.dv2r_private], 95)
@@ -290,12 +290,12 @@ cb = fig.colorbar(ScalarMappable(norm=BoundaryNorm(P_LEVELS[:-1] + [P_LEVELS[-2]
                   orientation="horizontal", shrink=.4, pad=.02, aspect=40, extend="max")
 cb.set_ticks(P_LEVELS[:-1]); cb.set_ticklabels([f"{v:.0f}" for v in P_LEVELS[:-1]])
 cb.set_label("DV2R: reliably reachable places per 100 children", fontsize=13); cb.outline.set_visible(False)
-fig.suptitle("Map 6  Who provides the places you can reach?", x=.02, y=.96, ha="left", fontsize=17)
+fig.suptitle("Map 6  Reliable access to public and private childcare (DV2R)", x=.02, y=.96, ha="left", fontsize=17)
 fig.savefig(FIG / "map6_public_vs_private.png", bbox_inches="tight", facecolor="white"); plt.show()
 
 # %% [markdown]
-# ## 9. Map 7: access and neighbourhood status together (bivariate)
-# Each Zählbezirk (250 statistical sub-districts) is coloured by two child-weighted terciles at once: **DV2R access** (light → blue) and **status** (light → pink), measured by the rent index (€ per m² for a standard flat, the finest status measure). Dark purple = high status and high access; pink = high status, low access; blue = low status, high access. Change `STATUS` to `share_knowledge_JKM`, `pct_tertiary` or `net_income_eur` to redraw with another measure.
+# ## 9. Map 7: access and neighbourhood status (bivariate)
+# Each Zählbezirk (250 statistical sub-districts) is classified jointly by two child-weighted terciles: **DV2R access** (light to blue) and **neighbourhood status** (light to pink), here measured by the rent index (€ per m² for a standard flat, the most finely resolved status measure). Dark purple denotes high status and high access, pink high status and low access, and blue low status and high access. Setting `STATUS` to `share_knowledge_JKM`, `pct_tertiary` or `net_income_eur` redraws the map with another status measure.
 
 # %%
 STATUS, STATUS_LABEL = "rent_eur_m2_std", "rent index"
@@ -333,7 +333,7 @@ print(pd.crosstab(agg.s3.map({0: "low", 1: "mid", 2: "high"}).rename("status"),
 
 # %% [markdown]
 # ## 10. Map 8: district summary
-# The 23 districts, coloured by child-weighted DV2R, with each district's number and value written on it. A quick orientation map for the essay.
+# The 23 districts, coloured by child-weighted DV2R and labelled with the district number and value. Intended as an orientation map for the report.
 
 # %%
 d = kids.groupby("DISTRICT_CODE").apply(lambda g: pd.Series({

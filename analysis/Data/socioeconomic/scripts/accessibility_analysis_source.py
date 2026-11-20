@@ -95,7 +95,7 @@ D = grid["children_u6"].fillna(0).to_numpy(float)
 # | DV2 | Average network 2SFCA | same Gaussian, computed **per departure** and averaged over the 60 | What a family gets on a typical morning; comparison for DV2R |
 # | **DV3** | Reliability loss | **1 − (access at a bad departure ÷ average access)**, "bad" = 10th percentile of the 60 per-departure scores | How much access a family loses by leaving at an unlucky minute |
 #
-# **Why DV2R is primary.** A parent dropping a child off before work has to plan for the slow mornings, not the average one. The 90th-percentile time is what transport-reliability work calls *planning time*: leave that much time and you arrive on time at 9 of 10 departure minutes. A site that is 8 min away on average but 16 min at some departures counts as a 16-min site. DV2R therefore penalises unreliable connections, while DV2 averages them away. The 90th percentile is the 55th-fastest of the 60 departures; a pair with no route at more than 6 departures gets weight 0.
+# **Why DV2R is primary.** A parent taking a child to childcare before work must plan for slow mornings, not for the average one. The 90th-percentile travel time corresponds to what the transport-reliability literature calls *planning time*: a traveller who allows that much time arrives on time at nine of ten departure minutes. A site that is 8 min away on average but 16 min at some departures counts as a 16-min site. DV2R therefore penalises unreliable connections, while DV2 averages them away. The 90th percentile is the 55th-fastest of the 60 departures; a pair with no route at more than 6 departures gets weight 0.
 #
 # *Robustness for DV2R:* catchment 10 and 20 min; a binary version weighting each site by the **share of departures that reach it within 15 min** (the "reliable 2SFCA" in `methods_primer.md` §2d); the 80th and 95th percentiles. *Capacity:* Pennerstorfer counted groups; we count places (group sizes are not in the data).
 
@@ -275,7 +275,7 @@ print(models[("dv2_reliable", "pct_tertiary")].summary().tables[1])
 # * **per 1 SD status:** β × SD(access)
 # * **low → high tercile:** the per-SD effect × the gap between the average child in the low and the high tercile (in SD of status)
 #
-# ⚠️ Standardised β depend on how much each measure varies between cells. Compare measures in these real units, not by the size of β alone.
+# *Note.* Standardised coefficients depend on how much each measure varies between cells. Measures should therefore be compared in these natural units, not by the size of β alone.
 
 # %%
 w = df.children_u6

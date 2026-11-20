@@ -1,8 +1,59 @@
+# This folder is the working copy of the shared repository.
+# Allow-list: everything is ignored unless listed below, so private material
+# (scraped adverts, papers, superseded work, large inputs) can never be committed.
+/*
+!/.gitignore
+!/README.md
+!/get_data.py
+!/docs/
+
+!/analysis/
+/analysis/*
+!/analysis/routing.ipynb
+!/analysis/socioeconomic_eda.ipynb
+!/analysis/accessibility_analysis.ipynb
+!/analysis/access_maps.ipynb
+
+!/analysis/Data/
+/analysis/Data/*
+!/analysis/Data/KINDERGARTENOGD.json
+!/analysis/Data/BEZIRKSGRENZEOGD.json
+!/analysis/Data/socioeconomic/
+/analysis/Data/socioeconomic/*
+!/analysis/Data/socioeconomic/scripts/
+!/analysis/Data/socioeconomic/processed/
+/analysis/Data/socioeconomic/processed/willhaben_listings_clean.gpkg
+!/analysis/Data/socioeconomic/raw/
+/analysis/Data/socioeconomic/raw/*
+!/analysis/Data/socioeconomic/raw/ZAEHLBEZIRKOGD.json
+!/analysis/Data/socioeconomic/raw/GEMBAUTENFLOGD.json
+!/analysis/Data/socioeconomic/raw/zbz_pop_birthcountry_agegroups_since2008.csv
+!/analysis/Data/socioeconomic/raw/zbz_births_since2015.csv
+!/analysis/Data/socioeconomic/raw/bez_education_since2008.csv
+!/analysis/Data/socioeconomic/raw/bez_income_since2011.csv
+!/analysis/Data/socioeconomic/raw/statistik_zsp_boundaries_2026/
+!/analysis/Data/socioeconomic/raw/statistik_inspire/
+/analysis/Data/socioeconomic/raw/statistik_inspire/*
+!/analysis/Data/socioeconomic/raw/statistik_inspire/vienna_extracts/
+
+!/analysis/outputs/
+/analysis/outputs/*
+!/analysis/outputs/analysis/
+!/analysis/outputs/eda_socioeconomic/
+/analysis/outputs/eda_socioeconomic/_archive*/
+!/analysis/outputs/maps/
+!/analysis/outputs/routing_origins.csv
+!/analysis/outputs/routing_destinations.csv
+!/analysis/outputs/nearest_site_time_by_cell.csv
+!/analysis/outputs/gtfs_stop_departures_5min.csv
+!/analysis/outputs/gtfs_route_lines_vienna.gpkg
+!/analysis/outputs/gtfs_stops_vienna.csv
+!/analysis/outputs/vienna_natural_water.geojson
+!/analysis/outputs/vienna_donau_rivers.geojson
+
+# never, anywhere
 .DS_Store
 .ipynb_checkpoints/
 __pycache__/
-# large inputs: download with `python get_data.py`
-*.osm.pbf
-analysis/Data/gtfs.zip
-analysis/outputs/origin_destination_matrices_1min/
-analysis/Data/OGDEXT_RASTER_1_STATISTIK_AUSTRIA_L000250_LAEA.zip
+*willhaben_rents*
+*listings_clean*

@@ -23,13 +23,13 @@ No spatial-econometric models: they handled spatial dependence through clusterin
 
 | Model | Question it answers | Effort | Recommended? |
 |---|---|---|---|
-| **A. OLS, child-weighted, clustered SE** | Is access higher where SES is higher, net of density? | low | ✅ **Core model** (= Pennerstorfer replication) |
-| **B. Same, by provider type** | Do public and non-profit sites differ in where they locate relative to SES? | low | ✅ **Core** (your public vs private question) |
+| **A. OLS, child-weighted, clustered SE** | Is access higher where SES is higher, net of density? | low | Yes: **core model** (Pennerstorfer replication) |
+| **B. Same, by provider type** | Do public and non-profit sites differ in where they locate relative to SES? | low | Yes: **core** (the public–private comparison) |
 | **C. Logistic regression** | Which areas are more likely to be "underserved" (a yes/no outcome)? | low | optional; few underserved children, so weak |
-| **D. Spatial error model (SEM)** | Same as A, but correcting for spatially clustered unexplained variation | medium | ✅ **one robustness check** at Zählbezirk level |
-| **E. Spatial lag model (SAR)** | Does access in one area depend on access in neighbouring areas? | medium | ❌ conceptually odd here: 2SFCA already builds neighbours in |
+| **D. Spatial error model (SEM)** | Same as A, but correcting for spatially clustered unexplained variation | medium | Yes: **one robustness check** at Zählbezirk level |
+| **E. Spatial lag model (SAR)** | Does access in one area depend on access in neighbouring areas? | medium | No: conceptually inappropriate, since the 2SFCA already incorporates neighbouring supply |
 | **F. Multilevel / random intercepts** | How much variation is between districts vs within them? | medium | optional; clustering (A) does most of the job |
-| **G. GWR / MGWR** | Does the SES–access relationship differ across the city? | high | ❌ out of scope; mention as future work |
+| **G. GWR / MGWR** | Does the SES–access relationship differ across the city? | high | No: out of scope; noted as future work |
 
 ---
 
@@ -74,7 +74,7 @@ smf.mixedlm("access ~ ses + density", data, groups=data["district"]).fit()
 
 ## 4. Unit of analysis: how the levels fit together
 
-* **Accessibility** is computed per **250 m cell** (that's where routing starts). Nothing forces you to aggregate it.
+* **Accessibility** is computed per **250 m cell** (the routing origin). There is no need to aggregate it.
 * **Model A** runs on **cells, weighted by children**, with each SES variable copied down from its own level and errors clustered at that level. This is exactly Pennerstorfer's set-up and avoids choosing one "true" unit.
 * **Model D** needs areas with neighbours, so run it on **Zählbezirke** (cell values aggregated with child weights). Zählbezirk is the finest level where we have country of birth and social housing; the rent index is at Zählsprengel level and aggregates up.
 * District variables (education, income) enter as context with district-clustered errors; with 23 values they can show direction, not much more.
@@ -85,12 +85,12 @@ smf.mixedlm("access ~ ses + density", data, groups=data["district"]).fit()
 
 | Part | Status (20 Nov 2026) |
 |---|---|
-| 1. **Descriptives:** maps of 2SFCA (all / public / private), equity gradients, concentration indices | ✅ analysis Figs. 3, 6–8; `access_maps.ipynb` |
-| 2. **Model A** for each status measure, all sites; then **Model B** by provider type. One regression table | ✅ `accessibility_analysis.ipynb` §4–5 |
-| 3. **Reliability:** DV2R (reliable network 2SFCA) is the headline outcome, DV2 (average over departures) the comparison, DV3 (access lost at a bad departure) the reliability outcome | ✅ §2, §6b |
-| 4. **Robustness:** catchment 10 / 20 min, 80th / 95th percentiles, share-of-departures weighting, Gemeindebau control | ✅ §5, §5b |
-| 4b. **Robustness:** SEM at Zählbezirk level | ⏳ open |
-| 4c. **Robustness:** under-3 vs 3–5 split (Pennerstorfer Appendix B) | ⏳ open (`children_u3`, `children_3_5` are already in `grid250_analysis.gpkg`) |
+| 1. **Descriptives:** maps of 2SFCA (all / public / private), equity gradients, concentration indices | Done: analysis Figs. 3, 6–8; `access_maps.ipynb` |
+| 2. **Model A** for each status measure, all sites; then **Model B** by provider type. One regression table | Done: `accessibility_analysis.ipynb` §4–5 |
+| 3. **Reliability:** DV2R (reliable network 2SFCA) is the headline outcome, DV2 (average over departures) the comparison, DV3 (access lost at a bad departure) the reliability outcome | Done: §2, §6b |
+| 4. **Robustness:** catchment 10 / 20 min, 80th / 95th percentiles, share-of-departures weighting, Gemeindebau control | Done: §5, §5b |
+| 4b. **Robustness:** SEM at Zählbezirk level | Open |
+| 4c. **Robustness:** under-3 vs 3–5 split (Pennerstorfer Appendix B) | Open (`children_u3`, `children_3_5` are already in `grid250_analysis.gpkg`) |
 | ~~Child counts official vs births-based~~ | dropped: the births × GHSL estimate was replaced on 13 Nov (`data_sources_and_merging_guide.md` §4) |
 
 That is a full, comparable analysis without GWR, multilevel or lag models.
