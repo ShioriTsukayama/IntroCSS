@@ -1,0 +1,10 @@
+step,n
+scraped,5347
+"missing coordinates, rent or area",149
+location only to postcode centre (LOCATION_QUALITY 0.5),622
+area outside 15-300 m2,35
+"rent outside 5-60 EUR/m2 (typos, parking, totals)",13
+outside 1st-99th pct of EUR/m2 (9.7-46.6),92
+"duplicate listing (same place, area, rent)",364
+outside Vienna's Zählsprengel,1
+kept,4071

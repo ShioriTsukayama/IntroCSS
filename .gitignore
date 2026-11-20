@@ -1,0 +1,9 @@
+.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+# large raw inputs, kept locally only
+*.osm.pbf
+gtfs.zip
+*.npz
+analysis/Data/socioeconomic/raw/
+analysis/outputs/origin_destination_matrices*/

@@ -1,0 +1,16 @@
+variable,meaning,source,level
+"gid, cellcode, origin_id, north, east",Cell ids and lower-left corner (EPSG:3035); row order = travel-time matrices,accessibility_metrics.csv,cell
+"SUB_DISTRICT_CODE, DISTRICT_CODE, zsp_id","Zählbezirk, district and Zählsprengel containing the cell centre",boundaries,cell
+pop_official,Official residents,"Statistik Austria 100 m grid, 1 Jan 2026 → 250 m by area share",cell
+children_u6,Children aged 0–5 (0–4 + ⅕ of 5–9),"Statistik Austria Zählsprengel ages, 1 Jan 2026 → 100 m residents (dasymetric) → 250 m (area share)",cell
+"children_u3, children_3_5",Split of children_u6,children_u6 × Zählbezirk births-based under-3 share,cell
+child_density_km2,children_u6 per km²,derived,cell
+pct_tertiary,% of 25–64 with a tertiary degree,"MA 23, 2023",district → cell
+net_income_eur,Average annual net income of employees,"MA 23, 2023",district → cell
+share_knowledge_JKM,"% of employed residents working in NACE J, K, M","Statistik Austria employment register, 31 Oct 2024",Zählsprengel → cell
+share_lowwage_IN,"% of employed residents working in NACE I, N",same,Zählsprengel → cell
+rent_eur_m2_std,"Asking rent € per m² per month, standard 65 m² flat",willhaben 16 Nov 2026; build_rent_index.py,Zählsprengel centre → cell
+share_foreign_born_15_64,% of residents 15–64 born abroad,"MA 23, 1 Jan 2026",Zählbezirk → cell
+emp_rate_15_64,Employed residents per 100 residents 15–64 (approx.),Statistik Austria employment register + ages,Zählsprengel → cell
+gemeindebau_per_100_res,Municipal-housing dwellings per 100 residents,Wiener Wohnen estates (OGD) + MA 23 residents,Zählbezirk → cell
+gemeindebau_dwellings,Municipal-housing dwellings in the cell (estate placed at an interior point),Wiener Wohnen estates (OGD),cell

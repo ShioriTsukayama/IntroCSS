@@ -1,0 +1,25 @@
+access,status,low,middle,high,high_minus_low
+DV1 straight-line,% with degree,72.43,82.25,86.79,14.37
+DV1 straight-line,Mean net income,74.85,78.01,88.61,13.76
+DV1 straight-line,% knowledge jobs,70.88,81.38,89.21,18.33
+DV1 straight-line,Rent € per m²,76.83,75.32,89.35,12.52
+DV2R reliable network,% with degree,73.08,82.28,86.24,13.16
+DV2R reliable network,Mean net income,75.38,79.5,86.74,11.36
+DV2R reliable network,% knowledge jobs,73.16,81.26,87.19,14.03
+DV2R reliable network,Rent € per m²,77.87,77.42,86.34,8.47
+DV2R public,% with degree,30.73,30.67,25.66,-5.07
+DV2R public,Mean net income,26.04,31.36,29.66,3.62
+DV2R public,% knowledge jobs,30.23,30.45,26.38,-3.86
+DV2R public,Rent € per m²,31.55,29.59,25.92,-5.63
+DV2R private,% with degree,42.35,51.61,60.58,18.22
+DV2R private,Mean net income,49.34,48.14,57.08,7.74
+DV2R private,% knowledge jobs,42.93,50.81,60.81,17.88
+DV2R private,Rent € per m²,46.32,47.83,60.42,14.1
+DV3 reliability loss,% with degree,11.3,11.48,10.58,-0.72
+DV3 reliability loss,Mean net income,10.24,11.48,11.63,1.39
+DV3 reliability loss,% knowledge jobs,11.03,11.24,11.07,0.04
+DV3 reliability loss,Rent € per m²,12.34,10.68,10.33,-2.01
+DV2R < 25 places / 100,% with degree,3.57,2.38,3.0,-0.57
+DV2R < 25 places / 100,Mean net income,1.41,3.52,4.02,2.61
+DV2R < 25 places / 100,% knowledge jobs,1.98,2.88,4.09,2.12
+DV2R < 25 places / 100,Rent € per m²,3.61,2.78,2.56,-1.05
