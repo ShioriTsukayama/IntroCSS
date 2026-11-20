@@ -3,18 +3,18 @@
 #
 # **What this notebook does.** Draws the presentation maps of the project: smoothed travel-time surfaces, reliability, the straight-line vs. timetable comparison, and the reliable network 2SFCA (**DV2R**, the primary access measure) set against neighbourhood status. Every map shares one look: Vienna on a pale background, the tram/bus/U-Bahn network in black, the Danube and lakes in navy, childcare sites as small diamonds.
 #
-# **Runs in about a minute, with no routing.** It only reads files already in this repository:
+# **Runs in about 20 seconds, with no routing.** It only reads files already in this repository:
 #
 # | Input | Made by |
 # |---|---|
 # | `Data/socioeconomic/processed/grid250_analysis.gpkg`: 250 m cells, children, status | `socioeconomic_eda.ipynb` |
 # | `Data/socioeconomic/processed/grid250_access_measures.csv`: DV1, DV2R, DV2, DV3 per cell | `accessibility_analysis.ipynb` |
-# | `outputs/nearest_site_time_by_cell.csv`: time to the nearest site across the 60 departures | §0 below (needs the travel-time matrices; otherwise uses the saved file) |
+# | `outputs/nearest_site_time_by_cell.csv`: time to the nearest site across the 60 departures | `routing.ipynb` |
 # | `Data/KINDERGARTENOGD.json`, `Data/BEZIRKSGRENZEOGD.json` | City of Vienna open data |
 # | `outputs/gtfs_route_lines_vienna.gpkg`, `outputs/gtfs_stops_vienna.csv` | cached from the Wiener Linien GTFS |
 # | `outputs/vienna_natural_water.geojson`, `outputs/vienna_donau_rivers.geojson` | cached from OpenStreetMap (OSMnx) |
 #
-# **About the smoothed surfaces.** Maps 1–3 and 6–7 are *visual estimates*: cell values are binned to a fine raster and blurred with a Gaussian filter (empty bins do not count as zero), then cut into bands. They are not exact street-network isochrones. Use the cell maps in `accessibility_analysis.ipynb` for anything you quote.
+# **About the smoothed surfaces.** Maps 1–6 are *visual estimates*: cell values are binned to a fine raster and blurred with a Gaussian filter (empty bins do not count as zero), then cut into bands. They are not exact street-network isochrones. Use the cell maps in `accessibility_analysis.ipynb` for anything you quote.
 #
 # Figures are written to `outputs/maps/`.
 
@@ -41,40 +41,12 @@ CAP = 30                   # routing cut-off (minutes); no route = "30+"
 plt.rcParams.update({"figure.dpi": 80, "savefig.dpi": 200, "font.size": 12})
 
 # %% [markdown]
-# ## 0. Time to the nearest site, per cell
-# Summarises the 60 one-minute travel-time matrices (07:30–08:29) to one row per cell: median, 90th percentile ("the time you can count on"), SD, and the share of departures reaching a site within 15 minutes. The matrices are a separate download (see the README); without them this cell loads the saved summary.
-
-# %%
-NEAREST = OUT / "nearest_site_time_by_cell.csv"
-MATRICES = sorted((OUT / "origin_destination_matrices_1min").glob("*.npz"))
-if MATRICES:
-    near = []
-    for m in MATRICES:
-        with np.load(m, allow_pickle=True) as z:
-            t = z["travel_times"]; ids = z["origin_ids"].astype(str)
-            near.append(np.min(np.where(np.isfinite(t), t, np.inf), axis=1))
-    N = np.array(near); N[np.isinf(N)] = np.nan                 # (departure, cell)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)          # cells never reached give all-NaN columns
-        pd.DataFrame({"origin_id": ids,
-                      "nearest_median_min": np.nanmedian(N, axis=0),
-                      "nearest_p90_min": np.nanpercentile(N, 90, axis=0),
-                      "nearest_min_min": np.nanmin(N, axis=0),
-                      "nearest_max_min": np.nanmax(N, axis=0),
-                      "nearest_sd_min": np.nanstd(N, axis=0),
-                      "share_departures_within_15": (np.nan_to_num(N, nan=99) <= 15).mean(axis=0),
-                      "share_departures_reachable": np.isfinite(N).mean(axis=0)}).round(3).to_csv(NEAREST, index=False)
-    print(f"summarised {len(MATRICES)} departure matrices → {NEAREST.name}")
-else:
-    print(f"travel-time matrices not downloaded; using the saved {NEAREST.name}")
-
-# %% [markdown]
 # ## 1. Load
 
 # %%
 grid = gpd.read_file(PROC / "grid250_analysis.gpkg")
 acc = pd.read_csv(PROC / "grid250_access_measures.csv").drop(columns=["rent_eur_m2_std"])
-near = pd.read_csv(NEAREST).drop(columns=["nearest_p90_min", "nearest_sd_min"])   # same values are already in acc
+near = pd.read_csv(OUT / "nearest_site_time_by_cell.csv").drop(columns=["nearest_p90_min", "nearest_sd_min"])   # same values are already in acc
 grid = grid.merge(acc, on=["gid", "origin_id"], how="left", validate="one_to_one") \
            .merge(near, on="origin_id", how="left", validate="one_to_one")
 fac = gpd.read_file(DATA / "KINDERGARTENOGD.json").to_crs(CRS)

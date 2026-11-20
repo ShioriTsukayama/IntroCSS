@@ -5,3 +5,4 @@ __pycache__/
 *.osm.pbf
 analysis/Data/gtfs.zip
 analysis/outputs/origin_destination_matrices_1min/
+analysis/Data/OGDEXT_RASTER_1_STATISTIK_AUSTRIA_L000250_LAEA.zip

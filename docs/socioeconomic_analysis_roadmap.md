@@ -1,19 +1,34 @@
 # From description to explanation: socio-economic analysis of childcare accessibility in Vienna
 
-*Prepared 12 Nov 2026. Companion to `'My' Code/socioeconomic_eda.ipynb`.*
+*Prepared 12 Nov 2026, updated 20 Nov 2026. Paths are relative to the project folder (`analysis/` in the shared repository, `'My' Code/` locally).*
 
-> **Status, 18 Nov 2026.** Phase 1 is done. Routing now covers **every minute 07:30–08:29** (60 departures). The **primary outcome is DV2R, the reliable network 2SFCA**: each cell–site pair uses its 90th-percentile travel time across the 60 departures (the time a parent can count on 9 mornings in 10). The average-over-departures 2SFCA (DV2) is kept for comparison, DV3 (share of access lost at an unlucky departure) is the reliability outcome, and DV1 is the Euclidean replication. All are in `accessibility_analysis.ipynb`; the 6-departure version is in `deprecated/`. Key results so far:
+> **Status, 20 Nov 2026.** Phases 1–4 are done; robustness is mostly done; writing has not started.
 >
-> * Higher status goes with more DV2R access, net of density and controls: β ≈ +0.08 to +0.10 SD per SD of status for all four status measures (p ≤ 0.01). Private sites drive this (β ≈ +0.19 to +0.28); public sites lean towards lower-status areas (β ≈ −0.06 to −0.15).
-> * Requiring reliability cuts the cell–site pairs within 15 min by 19%, but **redistributes** rather than reduces access: a 2SFCA hands out all of the city's places, so the child-weighted mean is 80.3 places per 100 children under every network measure.
-> * Reach falls slightly over the hour (≈ 2% fewer pairs within 15 min by 08:29) because the **timetable thins after the peak**: scheduled bus departures drop 12% from 07:30 to 08:29, trams and U-Bahn barely change. The GTFS covers Wiener Linien and Wiener Lokalbahnen only (no ÖBB S-Bahn): a limitation.
-> * Status gaps in access are constant across departure minutes (analysis Fig. 5).
+> **Pipeline** (each notebook only reads what the ones before it saved):
+> 1. `routing.ipynb`: walk + public transport times from 6,950 cells to 1,682 sites, **every minute 07:30–08:29** (60 departures). Routed once (17 Nov, 3.3 h); the matrices are on the repository release.
+> 2. `socioeconomic_eda.ipynb`: children per cell, the four status measures and the controls.
+> 3. `accessibility_analysis.ipynb`: the access measures, the models (A, B, robustness) and analysis figures 1–9.
+> 4. `access_maps.ipynb`: presentation maps (travel time, DV2R, reliability shift, public vs private, access × status).
+>
+> **Outcomes.** The **primary outcome is DV2R, the reliable network 2SFCA**: each cell–site pair uses its 90th-percentile travel time across the 60 departures (the time a parent can count on 9 mornings in 10). DV2 (2SFCA averaged over departures) is the comparison, DV3 (share of access lost at an unlucky departure) is the reliability outcome, and DV1 is the Euclidean Pennerstorfer replication.
+>
+> **Key results**
+> * Higher status goes with more DV2R access, net of density and controls: β ≈ +0.08 to +0.10 SD per SD of status for all four status measures (p ≤ 0.01). In places: about +4 places per 100 children per SD (mean 80). DV1 gives the same direction (β +0.06 to +0.09; income p = 0.06).
+> * **Private sites drive this** (β ≈ +0.19 to +0.28); **public sites lean towards lower-status areas** (β ≈ −0.06 to −0.15; income n.s.).
+> * Higher-status areas also lose *less* access at an unlucky departure (DV3: β ≈ −0.08 to −0.10, income n.s.).
+> * Requiring reliability cuts the cell–site pairs within 15 min by 19% (97,432 → 78,560), but **redistributes** rather than reduces access: a 2SFCA hands out all of the city's places, so the child-weighted mean is 80.3 places per 100 children under every measure. About a third of children gain more than 3 places per 100 and a third lose more than 3 (`access_maps.ipynb` map 2).
+> * DV1 and DV2R rank cells quite differently (Spearman 0.72; 32% of children move more than 25 percentiles), and the shift is itself patterned by status (higher-status areas gain about 2–3 percentiles per SD of status under DV2R, p ≤ 0.01).
+> * The nearest site is saturated: 96.8% of children's nearest-site time never changes over the hour, and practically every child has a site within 15 min. Access differences come from capacity and competition, not distance.
+> * Reach falls slightly over the hour (≈ 2% fewer pairs within 15 min by 08:29) because the **timetable thins after the peak**: scheduled bus departures drop 12% from 07:30 to 08:29, trams and U-Bahn barely change. Status gaps are constant across departure minutes (analysis Fig. 5). The GTFS covers Wiener Linien and Wiener Lokalbahnen only (no ÖBB S-Bahn): a limitation.
+> * Robustness: 10- and 20-min catchments, 80th / 95th percentiles, a share-of-departures weighting and a Gemeindebau control all keep the signs and significance (Gemeindebau moves status coefficients by a median of 8%).
+>
+> **Still open:** spatial error model at Zählbezirk level (`explanatory_models_primer.md` §5); the under-3 / 3–5 age split; the essay and slides.
 
 ---
 
 ## 1. Data inventory
 
-All downloaded files are in `'My' Code/Data/socioeconomic/raw/`. The EDA notebook writes the joined, analysis-ready tables to `'My' Code/Data/socioeconomic/processed/`.
+Downloaded files are in `Data/socioeconomic/raw/`. The EDA notebook writes the joined, analysis-ready tables to `Data/socioeconomic/processed/`. Which files are used, and which are in the shared repository, is in `data_inventory.md`.
 
 | Dataset | Spatial level | Year | Key variables | Status |
 |---|---|---|---|---|
@@ -29,12 +44,12 @@ All downloaded files are in `'My' Code/Data/socioeconomic/raw/`. The EDA noteboo
 | Employee net/gross income | Bezirke | 2011–2023 | average net income | ✅ |
 | Registered unemployment | Bezirke | 2002–2023 | per 1,000 residents | ✅ |
 | Zählbezirk boundaries (`ZAEHLBEZIRKOGD`) | 250 polygons | 2026 | join key `9BBZZ` | ✅ |
-| Municipal housing (*Gemeindebau*) | 1,776 estates (polygons) | current | dwellings per estate → **fine-grained low-income proxy** | ✅ |
-| JRC GHS-POP 2025 | 100 m raster | 2025 | modelled population: **superseded** by the official 100 m grid, kept for comparison | ✅ |
-| Eurostat Census 2021 grid | 1 km | 2021 | <15, born outside EU, employed, recent movers | ✅ |
-| Willhaben asking rents (Onur's scrape) | points | 2026 | rent per room | already in `Onur Code/` (weak proxy) |
+| Municipal housing (*Gemeindebau*) | 1,776 estates (polygons) | current | dwellings per estate → housing-tenure context (robustness control) | ✅ |
+| JRC GHS-POP 2025 | 100 m raster | 2025 | modelled population: **superseded** by the official 100 m grid | ❌ not used |
+| Eurostat Census 2021 grid | 1 km | 2021 | <15, born outside EU, employed, recent movers | downloaded, not used |
+| willhaben asking rents (own scrape, `scrape_willhaben.py`) | points → Zählsprengel index | 16 Nov 2026 | € per m², standard flat (`rent_measure_reference.md`) | ✅ (replaces Onur's Oct scrape) |
 | `KINDERGARTENOGD` (already had) | 1,682 sites | current | **capacity by age group**, **public vs private** (`TXTATT1`) | already had; now used |
-| Cached OD matrices | 6,950 × 1,682 × **60 one-minute departures** (07:30–08:29; was 6) | Oct 2026 timetable | full travel-time matrices | ✅ re-routed 17 Nov (Colab) |
+| Travel-time matrices (`routing.ipynb`) | 6,950 × 1,682 × **60 one-minute departures** (07:30–08:29) | Oct 2026 timetable | full travel-time matrices | ✅ routed 17 Nov |
 
 **What is missing, and how to get it**
 * **250 m grid data on education, country of birth and female employment.** This is what Pennerstorfer & Pennerstorfer used. **Child counts no longer need buying**: the free Zählsprengel age table covers them. Statistik Austria sells the grid data at about €350 per order plus a per-variable fee (prices scale with area, so a Vienna-only extract should cost much less than the Austria-wide list price). Ask your supervisors whether CEU has research access. The Austrian Micro Data Center (AMDC) also offers access for accredited researchers. If you get it, the notebook's cell-level joins already work: just add the variables. See `data_sources_and_merging_guide.md` §1d.
@@ -43,9 +58,9 @@ All downloaded files are in `'My' Code/Data/socioeconomic/raw/`. The EDA noteboo
 
 ---
 
-## 2. What the first EDA pass already shows
+## 2. What the first EDA pass showed (13 Nov 2026, historical)
 
-The figures are in `'My' Code/outputs/eda_socioeconomic/`.
+> **Superseded.** This section records the first descriptive pass, on the old 6 departures and a binary 2SFCA. Current results are in the status box at the top and in `accessibility_analysis.ipynb`. It is kept because it explains why the project moved from nearest-site time to a competition-adjusted, reliability-based measure.
 
 > **16 Nov 2026:** the EDA notebook was restructured (setup → loading → variable construction → correlations and status terciles) and now only builds children and status variables; all access measures live in `accessibility_analysis.ipynb`. The figures cited below are archived in `outputs/eda_socioeconomic/_archive_pre_2026-11-16/`. Their successors, built on the current access measures, are in `accessibility_analysis.ipynb`: Fig. 6 (access maps), Fig. 7 (equity gradients by status tercile, in places per 100 children, incl. the share of children below 25 places) and Fig. 8 (concentration curves and indices). LISA was dropped. Gemeindebau numbers below predate the 16 Nov de-duplication of the estate file and overstate dwellings.
 
@@ -79,16 +94,15 @@ The figures are in `'My' Code/outputs/eda_socioeconomic/`.
 
 ### 3.2 Accessibility measures, from simple to rich
 
-1. **Nearest-facility time.** What you have now. Easy to interpret, but nearly saturated in Vienna.
-2. **Cumulative opportunities.** The number of sites or *places* reachable within *T* minutes. Now computed as `places_u6_15min`.
+1. **Nearest-facility time.** Easy to interpret, but saturated in Vienna. Used for description and maps only.
+2. **Cumulative opportunities.** The number of sites or *places* reachable within *T* minutes. Not used in the current analysis.
 3. **Gravity / distance-decay.** Like (2), but each place is weighted by `exp(−β·t)` instead of a hard cut-off.
 4. **2SFCA family** (two-step floating catchment area). Pennerstorfer used it with straight-line distance; you can now run it with network times.
-   * 2SFCA (binary catchment) is done in the notebook (`sfca_places_per_100`).
-   * **E2SFCA** (enhanced 2SFCA) adds distance-decay weights inside the catchment.
+   * 2SFCA with a binary catchment was the first pass; the current measures use its **E2SFCA** form (distance-decay weights inside the catchment), with a Gaussian weight falling to 0 at 15 min (DV2, DV2R).
    * **M2SFCA / MM2SFCA** correct for supply over- or under-estimation, and MM2SFCA is the multi-modal version. The papers in `Papers/MM2SFCA/` cover these.
 5. **Reliability-aware measures.** These are your distinctive contribution:
-   * the share of departures within *T* (`within_15_pct`);
-   * the **buffer time** (p95 − p50 travel time), a standard transport-reliability index;
+   * the share of departures within *T* (`share_departures_within_15` in `nearest_site_time_by_cell.csv`; as a 2SFCA weighting: `dv2r_share15`);
+   * the **buffer time** (p90 − p50 travel time), a standard transport-reliability index. For the nearest site it is zero for 99% of children (it is usually walkable), so it is not used as an outcome;
    * "**reliable** 2SFCA", which only counts a site if it is reachable in ≥ 95% of departures. *Implemented (18 Nov) as DV2R: the Gaussian 2SFCA on each pair's 90th-percentile travel time; the 80th / 95th percentiles and a share-of-departures-within-15-min weighting are robustness checks.*
 
    Comparing the 2SFCA "on a typical departure" with the "reliable" 2SFCA shows who loses access once reliability is taken into account.
@@ -96,10 +110,10 @@ The figures are in `'My' Code/outputs/eda_socioeconomic/`.
 ### 3.3 Inequality and descriptive statistics
 
 * **Child-weighted summaries.** Always weight cells by `children_u6`, otherwise empty parks count as much as housing estates.
-* **Equity gradients.** The share of children underserved by SES quintile (Fig. 05).
-* **Concentration curve and concentration index.** These come from health economics (Fig. 07). CI > 0 means access favours advantaged areas.
+* **Equity gradients.** Access by status tercile (analysis Figs. 3 and 7).
+* **Concentration curve and concentration index.** These come from health economics (analysis Fig. 8). CI > 0 means access favours advantaged areas.
 * **Gini / Lorenz curve** of accessibility across children.
-* **Hot-spot analysis.** **LISA** (Local Moran's I, Fig. 06) or **Getis-Ord Gi\*** answer "*where* are the significant clusters of poor access?"
+* **Hot-spot analysis.** **LISA** (Local Moran's I) or **Getis-Ord Gi\*** answer "*where* are the significant clusters of poor access?" *Dropped (16 Nov): the maps in `access_maps.ipynb` show the pattern, and the essay has no room for it.*
 
 ### 3.4 Explanatory models (in order of complexity)
 
@@ -113,7 +127,7 @@ The figures are in `'My' Code/outputs/eda_socioeconomic/`.
 | **Logistic regression** on `underserved` (cell level, child-weighted) | "Which characteristics predict a child being underserved?" | `statsmodels` (GLM Binomial with `freq_weights`) |
 | **Multilevel model** (cells within Zählbezirke within districts) | When predictors exist at several levels (cell, ZBZ, district) | `statsmodels.MixedLM` |
 
-**Recommended unit of analysis:** the **Zählbezirk** (n = 250). It is the finest level at which socio-economic data are observed, rather than modelled. Use the 250 m cells for the outcome and for counting children, then aggregate with child weights. As a robustness check, run cell-level models with ZBZ-clustered errors.
+**Unit of analysis (decided 16 Nov):** the **250 m cell, weighted by children**, with each status variable copied down from its own level and errors clustered at the coarsest level in the model. This is Pennerstorfer's set-up (`explanatory_models_primer.md` §4). The Zählbezirk (n = 250) is used for the planned spatial error model and for the bivariate map.
 
 ### 3.5 Toolset
 
@@ -144,15 +158,15 @@ Python is fine for this. Everything a GIS package (QGIS/ArcGIS) does here can be
 
 ## 5. Roadmap
 
-| Phase | Tasks | Output for the paper |
-|---|---|---|
-| **0. Decide scope** (now) | Answer the questions in §6; fix the age group, provider set, thresholds and time window. | Research question and hypotheses (Intro) |
-| **1. Outcomes** | (a) Re-route minute by minute over the morning (e.g. 07:00–08:30). In r5py, `departure_time_window` makes R5 route **every minute** in the window and return percentiles of those per-minute times for each cell–site pair. It does not replace minute-by-minute routing; it *is* minute-by-minute routing, stored compactly. Our current 6 slots already use the default 10-min window, so they are medians of 10 one-minute departures each. Running 9 consecutive 10-min windows keeps the time-of-morning detail. (b) Compute Pennerstorfer 2SFCA (500 m, d⁻²), network 2SFCA/E2SFCA (10 and 15 min) and **reliability-adjusted 2SFCA**, separately for all, public and private sites. | Methods §: accessibility measures; Fig. 1 map |
-| **2. Demand and SES** (done) | Official Zählsprengel child counts on the official 100 m grid (done 13 Nov); Eurostat 1 km variables (done); validate the new Zählsprengel sector-share proxies against district education; decide whether to request 250 m Statistik Austria education/origin data. | Data section; descriptive table |
-| **3. Descriptive inequality** | Child-weighted counts of underserved children; equity gradients; concentration indices; LISA maps. | Results part 1 (2 figures) |
-| **4. Explanatory models** | ZBZ-level OLS with density and centrality controls → LM tests → SAR/SEM; logistic regression of `underserved`; public vs private split; optional GWR. | Results part 2 (regression table) |
-| **5. Robustness** | Thresholds of 10/15/20 min; 2SFCA decay functions; 250 m vs ZBZ level (MAUP); excluding sites with unknown capacity; official vs births × GHSL child counts (already shows the "underserved" count is sensitive to where children are placed). | Appendix or short robustness paragraph |
-| **6. Write and present** | About 5,000 words, 2–6 figures; slides. | Paper and presentation |
+| Phase | Tasks | Status (20 Nov) | Output for the paper |
+|---|---|---|---|
+| **0. Decide scope** | Age group, provider set, thresholds, time window (§6). | ✅ done 13 Nov | Research question and hypotheses (Intro) |
+| **1. Outcomes** | (a) Route every minute 07:30–08:29 with one-minute windows (`routing.ipynb`). (b) Pennerstorfer 2SFCA (DV1: 500 m, d⁻²); network 2SFCA averaged over departures (DV2); **reliable network 2SFCA (DV2R)**; reliability loss (DV3); DV2R separately for public and private sites. | ✅ done 17–18 Nov | Methods: accessibility measures; analysis Fig. 6, maps 1–6 |
+| **2. Demand and SES** | Official Zählsprengel child counts on the official 100 m grid; four status measures (education, income, knowledge jobs, rent index); controls (density, % foreign-born, employment rate, U-Bahn; Gemeindebau as robustness). | ✅ done 13–16 Nov | Data section; descriptive table (EDA §3–4) |
+| **3. Descriptive inequality** | Child-weighted equity gradients by status tercile; concentration curves and indices; access maps. LISA dropped. | ✅ done 18 Nov | Analysis Figs. 3, 7, 8; maps 4, 6, 7 |
+| **4. Explanatory models** | Model A (child-weighted OLS, clustered SE, one status measure at a time) and Model B (public vs private). | ✅ done 18 Nov | Regression table; analysis Fig. 4 |
+| **5. Robustness** | Catchments 10/20 min, 80th/95th percentiles, share-of-departures weighting, Gemeindebau control: ✅ done. Still open: spatial error model at Zählbezirk level; under-3 / 3–5 age split. | 🟡 mostly done | Appendix or short robustness paragraph |
+| **6. Write and present** | About 5,000 words, 2–6 figures; slides. Shiori: theory sections. | ⏳ not started | Paper and presentation |
 
 **Suggested hypotheses**
 * H1: Network-based, competition-adjusted access is lower in low-SES Zählbezirke, net of density.
@@ -169,7 +183,7 @@ Python is fine for this. Everything a GIS package (QGIS/ArcGIS) does here can be
 3. Trip: home → childcare only, morning.
 4. Main outcome: Pennerstorfer-comparable 2SFCA, extended with network times and reliability.
 5. Data budget: nothing paid. Optionally ask the professor about CEU / AMDC access to 250 m education data.
-6. Compute: the desktop does the minute-by-minute re-routing.
+6. Compute: the minute-by-minute routing ran once on 17 Nov (3.3 h). Nobody needs to re-run `routing.ipynb`: the matrices are on the repository release.
 7. Team: Stash (analysis) and Shiori (theory sections); Onur is not on the team. Sync needed.
 
 *Original questions:*

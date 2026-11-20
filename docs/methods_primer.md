@@ -1,6 +1,6 @@
 # Methods primer: terms, measures and Python
 
-*A plain-language reference for the childcare accessibility project. Each entry says **what it is**, **why we use it**, and gives a **toy example**. All code was run; the printed results are shown as comments.*
+*A plain-language reference for the childcare accessibility project. Each entry says **what it is**, **why we use it**, and gives a **toy example**. All code was run; the printed results are shown as comments. Checked against the project on 20 Nov 2026.*
 
 **Contents**
 1. Basic terms
@@ -117,7 +117,7 @@ np.average(dv2, weights=children), np.average(dv2r, weights=children)   # 80.0, 
 ```
 * On an average morning cell 3 has 52.5 places per 100 children. Counting only what it can **rely on**, it has 6.3, because its main site is outside the 15-min catchment 3 mornings in 10.
 * **The child-weighted average is the same (80.0 = 80 places ÷ 100 children).** A 2SFCA always hands out all places among the children who can reach them, so as long as every site is reached by someone, Σ children × access = Σ places. Requiring reliability **moves** access from badly connected cells (cell 3) to the cells that still reach the site (cells 1 and 2, which now compete with fewer children). In Vienna: DV2 and DV2R both average 80.3, but the cell–site pairs within 15 min fall by 19%.
-* So DV2R is an *inequality* measure: it does not say Vienna has fewer places, it says who can count on them.
+* So DV2R is an *inequality* measure: it does not say Vienna has fewer places, it says who can count on them. Map 2 in `access_maps.ipynb` shows where access moves: about a third of children gain more than 3 places per 100, a third lose more than 3.
 
 **What 2SFCA needs, and what we have**
 
@@ -127,7 +127,7 @@ np.average(dv2, weights=children), np.average(dv2r, weights=children)   # 80.0, 
 | Capacity | ✅ places by group type | 133 sites missing capacity |
 | Provider type | ✅ public / private (+ operator name) | good |
 | Children per cell | ✅ official ZSP counts, placed with official 100 m residents | real totals, modelled placement (§3) |
-| Travel times | ✅ OD matrices | timetable-based |
+| Travel times | ✅ OD matrices from `routing.ipynb` (60 departures) | timetable-based |
 
 So **yes, we can do a Pennerstorfer-style 2SFCA**. The weak point is not the 2SFCA but the **SES variables** we regress it on.
 
@@ -213,7 +213,7 @@ Moran(random, W).I      # 0.08 – no pattern
 **Why it matters:** if both access and SES are clustered, an ordinary regression treats 250 neighbouring areas as 250 independent facts when they are not → p-values too small.
 
 ### 5b. LISA (local Moran)
-Splits Moran's I by location to map **clusters**: *High-High* (high values surrounded by high), *Low-Low*, and outliers (*High-Low*, *Low-High*). Answers "where are the underserved pockets?" with a significance test. `esda.moran.Moran_Local(y, W)`.
+Splits Moran's I by location to map **clusters**: *High-High* (high values surrounded by high), *Low-Low*, and outliers (*High-Low*, *Low-High*). Answers "where are the underserved pockets?" with a significance test. `esda.moran.Moran_Local(y, W)`. *Not used in the final analysis (dropped 16 Nov).*
 
 ---
 

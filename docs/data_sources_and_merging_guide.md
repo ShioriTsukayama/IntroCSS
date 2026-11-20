@@ -1,6 +1,6 @@
 # Data sources and how to merge them: Vienna childcare accessibility
 
-*Last updated 13 Nov 2026. This complements `socioeconomic_analysis_roadmap.md`.*
+*Last updated 20 Nov 2026 (content mostly 13 Nov). Paths are relative to the project folder (`analysis/` in the shared repository, `'My' Code/` locally). This complements `socioeconomic_analysis_roadmap.md`; which files are used now is in `data_inventory.md`.*
 
 ---
 
@@ -81,7 +81,7 @@ These are Statistik Austria's INSPIRE downloads (an EU open-data standard), publ
 | 100 m grid | Official population, 2026 | Statistik Austria INSPIRE | **yes (new)** |
 | 100 m grid | Modelled population (satellite-based) | JRC GHSL | yes (now superseded) |
 | Points / polygons | Childcare sites; municipal housing estates; U-Bahn and stops (GTFS); schools; parks; land use; building heights | Vienna OGD (data.wien.gv.at) | sites, housing, GTFS: yes |
-| Points | Asking rents | Willhaben (scraped, as in Onur's project) | Onur's CSV |
+| Points | Asking rents | willhaben (own scrape, 16 Nov 2026; replaced Onur's October scrape) | yes, aggregated to `processed/zsp_rent_index.csv` (`rent_measure_reference.md`) |
 | Zone maps (PDF) | Rent location surcharge zones; no surcharge in about 70% of census areas, a marker of historically poorer housing stock | MA 25 / wohnberatung-wien.at | no |
 
 ### 2c. Origin and language
@@ -149,7 +149,7 @@ One table, one row per variable:
 
 ## 4. The pipeline as implemented
 
-Scripts are in `'My' Code/Data/socioeconomic/scripts/`. Run them from `Data/socioeconomic` with `python -I`.
+Scripts are in `Data/socioeconomic/scripts/`. Run them from `Data/socioeconomic` with `python -I`. They produced the files in `raw/statistik_inspire/vienna_extracts/` and `processed/`; the national INSPIRE zips they read (0.15–0.8 GB) are not in the repository.
 
 1. `parse_inspire.py <zip> <out.csv> zsp|grid` reads the GML (the EU's XML format for map data) directly from the zip and keeps Vienna only. Extracted, the full files are 0.15–0.8 GB each, so don't unzip them.
 2. `build_inspire_tables.py`:
@@ -162,7 +162,7 @@ Scripts are in `'My' Code/Data/socioeconomic/scripts/`. Run them from `Data/soci
    - splits those onto 250 m cells by area;
    - writes `processed/grid250_children_official_2026.csv` and the comparison with our estimate.
 
-**Done 13 Nov 2026:** `socioeconomic_eda.ipynb` now builds `children_u6` this way inside the notebook (§3b since the 16 Nov restructure, which also dropped the births × GHSL comparison column), and every downstream measure uses it: underserved counts, 2SFCA, gradients, Moran's I, concentration curves. The old estimate is kept as `children_u6_births_ghsl`. Effects:
+**Done 13 Nov 2026:** `socioeconomic_eda.ipynb` now builds `children_u6` this way inside the notebook (§3b since the 16 Nov restructure, which also dropped the births × GHSL comparison column), and every downstream measure uses it: underserved counts, 2SFCA, gradients, Moran's I, concentration curves. The old estimate was kept as `children_u6_births_ghsl` until the 16 Nov restructure removed it. Effects at the time (6 departures, binary 2SFCA):
 
 | Measure | Births × GHSL (before) | Official (after) |
 |---|---|---|

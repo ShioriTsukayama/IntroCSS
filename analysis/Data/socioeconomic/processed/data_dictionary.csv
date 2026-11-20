@@ -1,5 +1,5 @@
 variable,meaning,source,level
-"gid, cellcode, origin_id, north, east",Cell ids and lower-left corner (EPSG:3035); row order = travel-time matrices,accessibility_metrics.csv,cell
+"gid, cellcode, origin_id, north, east",Cell ids and lower-left corner (EPSG:3035); row order = travel-time matrices,routing_origins.csv,cell
 "SUB_DISTRICT_CODE, DISTRICT_CODE, zsp_id","Zählbezirk, district and Zählsprengel containing the cell centre",boundaries,cell
 pop_official,Official residents,"Statistik Austria 100 m grid, 1 Jan 2026 → 250 m by area share",cell
 children_u6,Children aged 0–5 (0–4 + ⅕ of 5–9),"Statistik Austria Zählsprengel ages, 1 Jan 2026 → 100 m residents (dasymetric) → 250 m (area share)",cell

@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Childcare accessibility and neighbourhood status in Vienna: analysis
 #
-# **What this notebook does.** It builds the access measures (dependent variables) from minute-by-minute travel times, attaches the status measures and controls, runs a Pennerstorfer-style OLS, and draws the analysis figures. Data preparation lives in `socioeconomic_eda.ipynb`; routing lives in `colab_routing/vienna_routing_1min_colab.ipynb`. This notebook only reads their outputs.
+# **What this notebook does.** It builds the access measures (dependent variables) from minute-by-minute travel times, attaches the status measures and controls, runs a Pennerstorfer-style OLS, and draws the analysis figures. Data preparation lives in `socioeconomic_eda.ipynb`; routing lives in `routing.ipynb`. This notebook only reads their outputs.
 #
 # **Fixed decisions (so the essay can state them once)**
 # | Decision | Choice |
@@ -71,7 +71,7 @@ mats = sorted(MATRICES.glob("*.npz"))
 DEPARTURES = [m.stem.split("_")[1] for m in mats]
 tt = np.empty((len(mats), len(grid), len(fac)), dtype=np.float32)      # (departure, cell, site), filled in place to save memory
 for k, m in enumerate(mats):
-    with np.load(m, allow_pickle=True) as z:          # written by our own routing notebook
+    with np.load(m, allow_pickle=True) as z:          # written by routing.ipynb
         assert np.array_equal(z["origin_ids"].astype(str), grid["origin_id"].astype(str).to_numpy())
         assert int(z["window_minutes"]) == 1
         tt[k] = z["travel_times"]

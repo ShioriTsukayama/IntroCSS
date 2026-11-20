@@ -1,6 +1,6 @@
 # The housing-cost status measure: how it is built, and how it compares
 
-*Written 16 Nov 2026. Companion to `data_inventory.md` and `methods_primer.md`. Documents the fourth neighbourhood status measure, `rent_eur_m2_std` ("asking rent per m² for a standard flat, per Zählsprengel"), and compares it with Pennerstorfer & Pennerstorfer's (2021) house prices, Onur's earlier scrape, and the simple alternative of average rent per room per district.*
+*Written 16 Nov 2026, checked 20 Nov 2026. Companion to `data_inventory.md` and `methods_primer.md`. Documents the fourth neighbourhood status measure, `rent_eur_m2_std` ("asking rent per m² for a standard flat, per Zählsprengel"), and compares it with Pennerstorfer & Pennerstorfer's (2021) house prices, Onur's earlier scrape, and the simple alternative of average rent per room per district.*
 
 **Contents**
 1. Summary table
@@ -59,7 +59,7 @@ Pennerstorfer did not build the measure; DataScience did, with the hedonic metho
 
 ## 3. Toy example: every step on 15 made-up listings
 
-Script: `'My' Code/Data/socioeconomic/scripts/rent_index_toy_example.py`. All numbers below are its real output.
+Script: `Data/socioeconomic/scripts/rent_index_toy_example.py`. All numbers below are its real output.
 
 ### 3.1 The set-up
 
@@ -172,7 +172,7 @@ What this shows:
 
 ## 4. The real pipeline in detail
 
-Scripts are in `'My' Code/Data/socioeconomic/scripts/`; run them from `Data/socioeconomic` with `python -I`.
+Scripts are in `Data/socioeconomic/scripts/`; run them from `Data/socioeconomic` with `python -I`.
 
 ### 4.1 Collection (`scrape_willhaben.py`)
 
@@ -315,7 +315,7 @@ A ~500 m radius is the same neighbourhood size Pennerstorfer, Pennerstorfer & Ne
 
 ### 4.7 Into the analysis (`accessibility_analysis_source.py` → `accessibility_analysis.ipynb` §3b)
 
-1. Each 250 m cell takes its Zählsprengel's `rent_eur_m2_std` via `zsp_id`. This covers 6,631 of 6,950 cells and 111,479 of 111,638 children; the analysis sample is unchanged (3,687 cells, 110,764 children).
+1. Each 250 m cell takes its Zählsprengel's `rent_eur_m2_std` via `zsp_id`. This covers 6,631 of 6,950 cells and 111,479 of 111,638 children; the analysis sample is unchanged (3,735 cells, 110,822 children).
 2. Child-weighted z-score, as for all status measures.
 3. Same OLS and controls as the other three status measures, **clustered by Zählbezirk** (248 clusters).
 4. Child-weighted terciles for Fig. 3; fourth panel in Figs. 3 and 4.
@@ -380,7 +380,7 @@ The public-site and reliability results exist **within** districts and disappear
 
 ---
 
-## 7. Maps (EDA notebook §3e, `'My' Code/outputs/eda_socioeconomic/`)
+## 7. Maps (EDA notebook §3e, `outputs/eda_socioeconomic/`)
 
 | Figure | Shows |
 |---|---|
@@ -402,7 +402,7 @@ The public-site and reliability results exist **within** districts and disappear
 | Flat traits controlled | Rich (age, condition, …) | Size, rooms, floor, outdoor space, new-build, landlord type | Some building quality remains in our location signal |
 | Smoothing | Inside the vendor's model | Explicit kernel, ~500 m, k = 20 | Slight shrinkage of extremes (toy example, Zählsprengel C); errors clustered by Zählbezirk |
 | Timing | 2015 for 2007–14 | Nov 2026, matching the 2026 data | — |
-| Reproducibility | Proprietary | Scripts and raw CSV in the repo; a re-run another day gives another sample | State the scrape date |
+| Reproducibility | Proprietary | Scripts and the aggregated index are shared; the raw adverts are kept locally, not redistributed. A re-run another day gives another sample | State the scrape date |
 | Ethics | — | Scraped against willhaben's robots.txt, at low rate, no personal data | Ethics note |
 
 **Suggested methods sentence:** *"Following Pennerstorfer and Pennerstorfer (2021), who used the estimated price of a standardised flat at each census tract's centroid, we construct a rent index from 4,071 geolocated willhaben listings (16 November 2026). A hedonic regression removes differences in flat size and type, and a Gaussian kernel over the 20 nearest listings (median radius 502 m, chosen by leave-one-out cross-validation) gives the monthly asking rent per m² of a standard 65 m² flat at each tract's centre."*
@@ -411,19 +411,22 @@ The public-site and reliability results exist **within** districts and disappear
 
 ## 9. Files and how to re-run
 
+Paths are relative to the project folder (`analysis/` in the shared repository, `'My' Code/` locally). Files marked *local only* are not in the shared repository: they are third-party adverts with street-level locations, and willhaben does not allow redistribution.
+
 | File | What |
 |---|---|
-| `'My' Code/Data/socioeconomic/scripts/scrape_willhaben.py` | Collection (§4.1) |
-| `…/raw/willhaben_rents_2026-11-16.csv` | Raw scrape, 5,347 listings |
-| `…/scripts/build_rent_index.py` | Cleaning, hedonic model, kernel (§4.2–4.6) |
-| `…/scripts/rent_index_toy_example.py` | Toy example (§3) |
-| `…/processed/willhaben_listings_clean.gpkg` | 4,071 clean listings with residuals |
-| `…/processed/zsp_rent_index.csv` | Index per Zählsprengel |
-| `…/processed/rent_index_cleaning_log.csv` | Cleaning table |
-| `…/scripts/socioeconomic_eda_source.py` → `socioeconomic_eda.ipynb` §3e | Maps (§7) |
-| `…/scripts/accessibility_analysis_source.py` → `accessibility_analysis.ipynb` §3b | Regressions (§4.7) |
+| `Data/socioeconomic/scripts/scrape_willhaben.py` | Collection (§4.1) |
+| `Data/socioeconomic/raw/willhaben_rents_2026-11-16.csv` (*local only*) | Raw scrape, 5,347 listings |
+| `Data/socioeconomic/scripts/build_rent_index.py` | Cleaning, hedonic model, kernel (§4.2–4.6) |
+| `Data/socioeconomic/scripts/rent_index_toy_example.py` | Toy example (§3) |
+| `Data/socioeconomic/processed/willhaben_listings_clean.gpkg` (*local only*) | 4,071 clean listings with residuals |
+| `Data/socioeconomic/processed/zsp_rent_index.csv` | Index per Zählsprengel |
+| `Data/socioeconomic/processed/rent_index_cleaning_log.csv` | Cleaning table |
+| `Data/socioeconomic/scripts/socioeconomic_eda_source.py` → `socioeconomic_eda.ipynb` §3e | Maps (§7). The listing-location map is skipped when the local-only files are absent |
+| `Data/socioeconomic/scripts/accessibility_analysis_source.py` → `accessibility_analysis.ipynb` §3b | Regressions (§4.7) |
+| `access_maps.ipynb` map 7 | Access × rent index, bivariate map by Zählbezirk |
 
-From `'My' Code/Data/socioeconomic`:
+From `Data/socioeconomic` (needs the local-only raw scrape):
 
 ```bash
 python -I scripts/build_rent_index.py raw/willhaben_rents_2026-11-16.csv
@@ -433,7 +436,7 @@ python -I scripts/build_rent_index.py raw/willhaben_rents_2026-11-16.csv
 python -I scripts/rent_index_toy_example.py
 ```
 
-From `'My' Code` (notebooks are generated from their `_source.py`; edit the source, not the notebook):
+From the project folder (notebooks are generated from their `_source.py`; edit the source, not the notebook):
 
 ```bash
 python Data/socioeconomic/scripts/py_to_ipynb.py Data/socioeconomic/scripts/socioeconomic_eda_source.py socioeconomic_eda.ipynb && jupyter nbconvert --to notebook --execute --inplace socioeconomic_eda.ipynb

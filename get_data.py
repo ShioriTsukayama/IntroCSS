@@ -1,7 +1,7 @@
 """Download the large inputs that are too big for git, from this repository's GitHub release.
 
     python get_data.py              # travel-time matrices only (enough to re-run every notebook)
-    python get_data.py --routing    # also the timetable and street network (only needed to redo the routing)
+    python get_data.py --routing    # also the timetable, street network and 250 m grid (only needed to redo the routing)
 
 Files land where the notebooks expect them, under analysis/.
 """
@@ -16,6 +16,7 @@ FILES = {  # asset name: (where it goes, unzip?)
 ROUTING = {
     "gtfs.zip": (HERE / "Data", False),
     "vienna-261020.osm.pbf": (HERE / "Data", False),
+    "OGDEXT_RASTER_1_STATISTIK_AUSTRIA_L000250_LAEA.zip": (HERE / "Data", False),
 }
 
 def fetch(name, dest_dir, unzip):

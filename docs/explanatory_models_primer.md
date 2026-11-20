@@ -1,6 +1,6 @@
 # Explanatory models: options, what Pennerstorfer did, and what fits a 5,000-word essay
 
-*Companion to `methods_primer.md`. Code below was run on a toy dataset (100 areas in 4 "districts", access driven by density and SES plus spatially clustered noise).*
+*Companion to `methods_primer.md`. Code below was run on a toy dataset (100 areas in 4 "districts", access driven by density and SES plus spatially clustered noise). Status of each model in the project: §5 (updated 20 Nov 2026).*
 
 ---
 
@@ -76,16 +76,21 @@ smf.mixedlm("access ~ ses + density", data, groups=data["district"]).fit()
 
 * **Accessibility** is computed per **250 m cell** (that's where routing starts). Nothing forces you to aggregate it.
 * **Model A** runs on **cells, weighted by children**, with each SES variable copied down from its own level and errors clustered at that level. This is exactly Pennerstorfer's set-up and avoids choosing one "true" unit.
-* **Model D** needs areas with neighbours, so run it on **Zählbezirke** (cell values aggregated with child weights). Zählbezirk is the finest level where we have country of birth, social housing and (soon) cleaner rents.
+* **Model D** needs areas with neighbours, so run it on **Zählbezirke** (cell values aggregated with child weights). Zählbezirk is the finest level where we have country of birth and social housing; the rent index is at Zählsprengel level and aggregates up.
 * District variables (education, income) enter as context with district-clustered errors; with 23 values they can show direction, not much more.
 
 ---
 
-## 5. Suggested scope for the essay (≈ 5,000 words)
+## 5. Scope for the essay (≈ 5,000 words), and where it stands
 
-1. **Descriptives:** maps of 2SFCA (all / public / private), equity gradients, concentration indices. *(mostly done)*
-2. **Model A** for each SES measure, all sites → then **Model B** by provider type. One regression table.
-3. **Reliability extension:** repeat A with reliability-adjusted 2SFCA; show where median-based and reliability-adjusted access diverge. *(18 Nov: the reliability-adjusted measure, DV2R, is now the headline outcome rather than an extension; the average-over-departures 2SFCA is the comparison.)*
-4. **Robustness (one paragraph or appendix):** SEM at Zählbezirk level; catchment 10 vs 15 min; child counts official vs births-based.
+| Part | Status (20 Nov 2026) |
+|---|---|
+| 1. **Descriptives:** maps of 2SFCA (all / public / private), equity gradients, concentration indices | ✅ analysis Figs. 3, 6–8; `access_maps.ipynb` |
+| 2. **Model A** for each status measure, all sites; then **Model B** by provider type. One regression table | ✅ `accessibility_analysis.ipynb` §4–5 |
+| 3. **Reliability:** DV2R (reliable network 2SFCA) is the headline outcome, DV2 (average over departures) the comparison, DV3 (access lost at a bad departure) the reliability outcome | ✅ §2, §6b |
+| 4. **Robustness:** catchment 10 / 20 min, 80th / 95th percentiles, share-of-departures weighting, Gemeindebau control | ✅ §5, §5b |
+| 4b. **Robustness:** SEM at Zählbezirk level | ⏳ open |
+| 4c. **Robustness:** under-3 vs 3–5 split (Pennerstorfer Appendix B) | ⏳ open (`children_u3`, `children_3_5` are already in `grid250_analysis.gpkg`) |
+| ~~Child counts official vs births-based~~ | dropped: the births × GHSL estimate was replaced on 13 Nov (`data_sources_and_merging_guide.md` §4) |
 
 That is a full, comparable analysis without GWR, multilevel or lag models.

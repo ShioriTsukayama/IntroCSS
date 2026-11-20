@@ -39,6 +39,7 @@
 # | Load and clean every source | this notebook §2 | raw files → in-memory tables; all cleaning rules and checks in **§2h** |
 # | Link units, build variables | this notebook §3 | → one row per 250 m cell |
 # | Check coverage, save | this notebook §5 | → `processed/grid250_analysis.gpkg`, `zaehlbezirke_analysis.gpkg/.csv`, `data_dictionary.csv` |
+# | Routing grid and travel times | `routing.ipynb` (runs first) | → `outputs/routing_origins.csv`, travel-time matrices |
 # | Access measures, models | `accessibility_analysis.ipynb` | reads `grid250_analysis.gpkg` |
 
 # %% [markdown]
@@ -151,7 +152,7 @@ def whist(ax, x, w, title, xlabel, terciles=True, bins=30):
 #
 # | # | Dataset | File | Level | Date |
 # |---|---|---|---|---|
-# | 2a | 250 m routing grid (cell codes, ids) | `outputs/accessibility_metrics.csv` | 6,950 cells | — |
+# | 2a | 250 m routing grid (cell codes, ids) | `outputs/routing_origins.csv` (from `routing.ipynb`) | 6,950 cells | — |
 # | 2b | Zählbezirk boundaries | `raw/ZAEHLBEZIRKOGD.json` | 250 | 2026 |
 # | 2b | Zählsprengel boundaries | `raw/statistik_zsp_boundaries_2026/` | 1,368 | 2026 |
 # | 2c | Residents by 5-year age band | `statistik_inspire/…/pd_popreg_zsp_*.csv` | Zählsprengel | 1 Jan 2026 |
@@ -170,7 +171,7 @@ def whist(ax, x, w, title, xlabel, terciles=True, bins=30):
 # The cell code gives the geometry: `250mN279825E478325` is the cell whose lower-left corner is at N 2,798,250 m, E 4,783,250 m (EPSG:3035). Row order is kept, because the travel-time matrices are stored in this order.
 
 # %%
-acc = pd.read_csv(OUT / "accessibility_metrics.csv", usecols=["gid", "cellcode", "origin_id"])
+acc = pd.read_csv(OUT / "routing_origins.csv", usecols=["gid", "cellcode", "origin_id"])     # written by routing.ipynb
 ne = acc["cellcode"].str.extract(r"N(\d+)E(\d+)").astype(int) * 10
 acc["north"], acc["east"] = ne[0], ne[1]
 grid = gpd.GeoDataFrame(acc, geometry=[box(e, n, e + 250, n + 250) for e, n in zip(acc["east"], acc["north"])], crs=GRID_CRS)
@@ -713,7 +714,7 @@ zz.to_file(PROC / "zaehlbezirke_analysis.gpkg", driver="GPKG")
 zz.drop(columns="geometry").to_csv(PROC / "zaehlbezirke_analysis.csv", index=False)
 
 dictionary = pd.DataFrame([
-    ("gid, cellcode, origin_id, north, east", "Cell ids and lower-left corner (EPSG:3035); row order = travel-time matrices", "accessibility_metrics.csv", "cell"),
+    ("gid, cellcode, origin_id, north, east", "Cell ids and lower-left corner (EPSG:3035); row order = travel-time matrices", "routing_origins.csv", "cell"),
     ("SUB_DISTRICT_CODE, DISTRICT_CODE, zsp_id", "Zählbezirk, district and Zählsprengel containing the cell centre", "boundaries", "cell"),
     ("pop_official", "Official residents", "Statistik Austria 100 m grid, 1 Jan 2026 → 250 m by area share", "cell"),
     ("children_u6", "Children aged 0–5 (0–4 + ⅕ of 5–9)", "Statistik Austria Zählsprengel ages, 1 Jan 2026 → 100 m residents (dasymetric) → 250 m (area share)", "cell"),
