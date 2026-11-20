@@ -1,17 +1,34 @@
-# Childcare accessibility in Vienna
+# Childcare accessibility in Vienna: a replication and extension
 
-This project examines whether access to childcare by walking and public transport differs with neighbourhood socio-economic status in Vienna. It replicates and extends Pennerstorfer & Pennerstorfer (2021) with a timetable-based, **reliability-adjusted two-step floating catchment area (2SFCA)** measure, computed from 60 one-minute departures (07:30–08:29, Tuesday 20 October 2026) for 6,950 cells of 250 m and 1,682 childcare sites.
+This project replicates and extends [Pennerstorfer & Pennerstorfer (2021)](https://doi.org/10.1017/S0047279419000990), *Inequalities in spatial accessibility of childcare: The role of non-profit providers* (Journal of Social Policy). The original study found that spatial accessibility of childcare in Vienna is highest in neighbourhoods with the highest socio-economic status, and that this inequality is attributable to non-profit providers.
+
+The **replication** re-estimates the original design: a straight-line 2SFCA, child-weighted OLS with clustered standard errors, and separate models for public and non-profit providers. It uses current open data for 2026 in place of the paid and proprietary data of the original. The **extension** replaces straight-line distance with travel times by walking and public transport from the timetable, computed for 60 one-minute departures (07:30–08:29, Tuesday 20 October 2026), 6,950 cells of 250 m and 1,682 childcare sites. It then asks whether conclusions change when access is measured by the travel time on which parents can rely, a **reliability-adjusted 2SFCA**.
 
 *Final project, Introduction to Computational Social Science.*
 
 ![Reliable access to childcare (DV2R)](analysis/outputs/maps/map4_dv2r_reliable_access.png)
 
-## Principal results (20 November 2026)
+## Replication and extension
+
+| | Pennerstorfer & Pennerstorfer (2021) | Replication (this project) | Extension (this project) |
+|---|---|---|---|
+| Period | Annual panel, 2007–2014 | Cross-section, 2026 | Cross-section, 2026 |
+| Demand | Children under six per 250 m cell (Statistik Austria, paid) | Official Zählsprengel counts of children aged 0–5, allocated to 250 m cells via the 100 m resident grid (open data) | As replication |
+| Supply | Childcare centres; capacity as number of groups | 1,682 sites (`KINDERGARTENOGD`); capacity as places | As replication |
+| Accessibility | 2SFCA, straight-line distance within 500 m, decay d⁻² | **DV1:** the same specification | **DV2:** network 2SFCA on timetable travel times (Gaussian decay to 15 min), averaged over 60 departures. **DV2R:** evaluated at each pair's 90th-percentile travel time (primary outcome). **DV3:** share of access lost at an unfavourable departure |
+| Neighbourhood status | Education (250 m cell), income (district), house prices (Zählsprengel, proprietary) | Education and income (district), rent per m² of a standard flat (Zählsprengel, own index from asking rents) | Adds the share of employed residents in knowledge-intensive sectors (Zählsprengel) |
+| Controls | Country of birth, female employment rate (cell), U-Bahn station | Share foreign-born (Zählbezirk), employment rate (Zählsprengel), U-Bahn station, child density | Municipal housing as a robustness control |
+| Model | OLS, one observation per child, standard errors clustered at the level of the status measure; separate models by provider type | Child-weighted OLS with the same clustering; public and private providers separately | As replication, for each access measure |
+
+**Replication outcome.** The central finding is reproduced with 2026 open data. Under the original straight-line measure (DV1), access rises with neighbourhood status (β ≈ +0.06 to +0.09 standard deviations per standard deviation of status; p ≤ 0.001 except for income, p = 0.06). Consistent with the original attribution to non-profit providers, the provider-specific models (estimated on DV2R) show that the gradient arises from private, predominantly non-profit sites, while access to public sites is oriented towards lower-status areas.
+
+## Principal results of the extension (20 November 2026)
 
 - **Primary measure.** DV2R is a network 2SFCA evaluated at each cell–site pair's 90th-percentile travel time, the time on which a parent can rely at nine of ten departures. Its child-weighted mean is 80 places per 100 children aged 0–5.
-- **Status gradient.** A one standard deviation higher neighbourhood status is associated with +0.08 to +0.10 standard deviations of DV2R (approximately +4 places per 100 children), net of density and controls (p ≤ 0.01), for all four status measures.
+- **Status gradient.** The direction of the original finding holds under timetable-based measures. A one standard deviation higher neighbourhood status is associated with +0.08 to +0.10 standard deviations of DV2R (approximately +4 places per 100 children), net of density and controls (p ≤ 0.01), for all four status measures.
 - **Provider type.** The gradient is driven by private sites (β ≈ +0.19 to +0.28); access to public sites is oriented towards lower-status areas (β ≈ −0.06 to −0.15).
-- **Reliability.** Requiring reliability reduces the number of cell–site pairs within 15 minutes by 19% but redistributes rather than reduces access (map 2).
+- **Measurement matters for who is counted as well served.** Straight-line and reliable network access rank cells differently (Spearman ρ = 0.72; 32% of children move by more than 25 percentiles), and the difference is itself patterned by status: higher-status areas gain rank under DV2R.
+- **Reliability.** Requiring reliability reduces the number of cell–site pairs within 15 minutes by 19% but redistributes rather than reduces access (map 2). Higher-status areas lose less access at an unfavourable departure (DV3).
 
 Hypotheses, the current status, outstanding work and limitations are set out in `docs/socioeconomic_analysis_roadmap.md`.
 
@@ -103,3 +120,9 @@ The repository is the working copy of the project folder on Stash's computer. Ch
 1. Clone the repository (or `git pull` before starting work).
 2. Commit and push changes as usual.
 3. Avoid editing the same notebook at the same time as another team member: notebooks do not merge cleanly. If an automatic update meets a conflicting change, it stops and reports the conflict instead of overwriting it.
+
+## References
+
+Pennerstorfer, A., & Pennerstorfer, D. (2021). Inequalities in spatial accessibility of childcare: The role of non-profit providers. *Journal of Social Policy*, 50(1), 122–147. https://doi.org/10.1017/S0047279419000990
+
+Pennerstorfer, A., Pennerstorfer, D., & Neumayr, M. (2025). Unequal access to childcare in cities: Is equal public funding sufficient? *Urban Studies*, 62(4), 647–664. https://doi.org/10.1177/00420980241258298

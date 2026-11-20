@@ -1,9 +1,9 @@
-# Childcare accessibility and neighbourhood status in Vienna: project overview
+# Childcare accessibility and neighbourhood status in Vienna: a replication and extension of Pennerstorfer & Pennerstorfer (2021)
 
 *Prepared 12 November 2026; revised 20 November 2026. Paths are relative to the project folder (`analysis/` in the shared repository, `'My' Code/` in the authors' local copy).*
 
 **Contents**
-1. Research question and hypotheses
+1. Research question, replication and extension
 2. Current status and principal results
 3. Analytical pipeline
 4. Data
@@ -12,12 +12,17 @@
 7. Scope decisions
 8. Development of the measures (13–18 November)
 9. Limitations
+10. References
 
 ---
 
-## 1. Research question and hypotheses
+## 1. Research question, replication and extension
 
-The project asks whether access to childcare by walking and public transport in Vienna differs with neighbourhood socio-economic status. It replicates the design of Pennerstorfer & Pennerstorfer (2021), who measured access with a straight-line two-step floating catchment area (2SFCA), and extends it in two respects: travel times are derived from the public-transport timetable rather than from straight-line distance, and access is evaluated by the travel time that can be relied upon across the morning, not only on an average departure.
+The project is a replication and extension of [Pennerstorfer & Pennerstorfer (2021)](https://doi.org/10.1017/S0047279419000990). Using data on all childcare centres in Vienna for 2007–2014, they found that spatial accessibility of childcare is highest in neighbourhoods with the highest socio-economic status, and that this inequality is attributable to non-profit providers. Accessibility was measured with a straight-line two-step floating catchment area (2SFCA).
+
+**Replication.** The original design is re-estimated on 2026 open data: the straight-line 2SFCA (DV1), child-weighted OLS with standard errors clustered at the level of the status measure, and separate models by provider type. Where the original relied on paid or proprietary data, open substitutes are used (README, *Replication and extension*). The replication tests whether the original finding holds a decade later and with open data.
+
+**Extension.** The question is whether access to childcare by walking and public transport differs with neighbourhood socio-economic status once access is measured as families experience it. The extension departs from the original in two respects. Travel times are derived from the public-transport timetable rather than from straight-line distance. And access is evaluated by the travel time that can be relied upon across the morning, not only on an average departure.
 
 The methodological contribution can be summarised as a comparison of three measurement choices: straight-line catchments, timetable-based 2SFCA, and reliability-adjusted 2SFCA. The question is which children change position between them, and whether that change is patterned by status. Measurement choices of this kind have distributional consequences.
 
@@ -34,7 +39,9 @@ The methodological contribution can be summarised as a comparison of three measu
 
 **Outcome measures.** The primary outcome is **DV2R, the reliable network 2SFCA**: for each cell–site pair, the 90th-percentile travel time across the 60 departures (the time on which a parent can rely at nine of ten departures) enters a Gaussian distance-decay function. DV2 (the network 2SFCA averaged over departures) serves as the comparison, DV3 (the share of access lost at an unfavourable departure) as the reliability outcome, and DV1 (straight-line 2SFCA) as the replication of Pennerstorfer & Pennerstorfer.
 
-**Principal results**
+**Replication.** The original finding is reproduced with 2026 open data. Under the straight-line measure (DV1), access rises with neighbourhood status (β ≈ +0.06 to +0.09; p ≤ 0.001 except for income, p = 0.06).
+
+**Principal results of the extension**
 * Higher neighbourhood status is associated with greater DV2R access, net of density and controls: β ≈ +0.08 to +0.10 standard deviations per standard deviation of status for all four status measures (p ≤ 0.01), or approximately +4 places per 100 children (mean 80). DV1 yields the same direction (β +0.06 to +0.09; for income p = 0.06). This is consistent with H1.
 * The association is driven by **private** sites (β ≈ +0.19 to +0.28). Access to **public** sites is oriented towards lower-status areas (β ≈ −0.06 to −0.15; not significant for income), consistent with H3.
 * Higher-status areas also lose less access at an unfavourable departure (DV3: β ≈ −0.08 to −0.10; not significant for income), consistent with H2.
@@ -154,3 +161,11 @@ This section records the first descriptive analysis, which used six 10-minute de
 * **Reliability.** Reliability is timetable-based variability, not observed delay.
 * **Network coverage.** The timetable covers Wiener Linien and Wiener Lokalbahnen only; ÖBB S-Bahn services are not included.
 * **Causality.** All associations are observational. Households choose where to live, partly in response to childcare provision, as Pennerstorfer & Pennerstorfer also note.
+
+---
+
+## 10. References
+
+Pennerstorfer, A., & Pennerstorfer, D. (2021). Inequalities in spatial accessibility of childcare: The role of non-profit providers. *Journal of Social Policy*, 50(1), 122–147. https://doi.org/10.1017/S0047279419000990
+
+Pennerstorfer, A., Pennerstorfer, D., & Neumayr, M. (2025). Unequal access to childcare in cities: Is equal public funding sufficient? *Urban Studies*, 62(4), 647–664. https://doi.org/10.1177/00420980241258298

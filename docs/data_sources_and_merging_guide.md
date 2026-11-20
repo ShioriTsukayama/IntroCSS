@@ -6,7 +6,7 @@
 
 ## 1. What Pennerstorfer et al. used
 
-### 1a. Pennerstorfer & Pennerstorfer (2021), *Journal of Social Policy*: years 2007–2014
+### 1a. [Pennerstorfer & Pennerstorfer (2021)](https://doi.org/10.1017/S0047279419000990), *Journal of Social Policy*: years 2007–2014
 
 The paper names four levels of geography: 250 m grid cells, 1,364 Zählsprengel (statistical enumeration districts), 250 Zählbezirke and 23 districts.
 
@@ -22,7 +22,7 @@ The paper names four levels of geography: 250 m grid cells, 1,364 Zählsprengel 
 
 Standard errors are clustered at the level each status variable is measured: cell for education, district for income. The 2SFCA uses straight-line distance within 500 m. Children and sites are placed at cell centres, and children in the same cell as a site are treated as 125 m away.
 
-### 1b. Pennerstorfer, Pennerstorfer & Neumayr (2024), *Urban Studies*: 2020 cross-section
+### 1b. [Pennerstorfer, Pennerstorfer & Neumayr (2025)](https://doi.org/10.1177/00420980241258298), *Urban Studies*: 2020 cross-section
 
 - Children under 6 per 250 m cell in 2020 (118,520 in total), split into under 3 and 3–5.
 - Education per cell for 2018: share of residents aged 15+ with a degree.
@@ -32,7 +32,7 @@ Standard errors are clustered at the level each status variable is measured: cel
 
 ### 1c. Did they merge geometries?
 
-Not formally. Lower-resolution variables were attached to cells by **simple assignment**: each cell takes the value of the larger area containing it. Neither paper says how cells crossing a boundary were handled; presumably by cell centre. The 2024 paper avoids the issue by keeping all status variables on the grid. The only adjustment for mixed resolution is in the statistics: standard errors clustered at the variable's own level.
+Not formally. Lower-resolution variables were attached to cells by **simple assignment**: each cell takes the value of the larger area containing it. Neither paper says how cells crossing a boundary were handled; presumably by cell centre. The 2025 paper avoids the issue by keeping all status variables on the grid. The only adjustment for mixed resolution is in the statistics: standard errors clustered at the variable's own level.
 
 ### 1d. Implications for a data request
 
@@ -125,7 +125,7 @@ Assigning a *count* to smaller units multiplies it; summing *rates* is meaningle
 | Large → small, **count**, with helper layer | **Dasymetric**: split in proportion to population, buildings or residential land | Target variable is distributed like the helper (e.g. children like total population) | `overlay` + weights; `tobler.dasymetric` |
 | Cells crossing boundaries | Centre-point assignment, or splitting by overlap share | Small edge error. Report how many cells are affected (we had 319 edge cells) | `sjoin` / `sjoin_nearest`; `overlay` |
 | Point data (rents, sites) → areas | Point-in-polygon, then median or count | Sample represents the area; check how many points each area has | `sjoin` |
-| Smoothed neighbourhoods (Pennerstorfer 2024) | Moving window / kernel: average over cells within *r* metres | Residents experience the area within *r* | `libpysal.weights.DistanceBand` + spatial lag |
+| Smoothed neighbourhoods (Pennerstorfer et al. 2025) | Moving window / kernel: average over cells within *r* metres | Residents experience the area within *r* | `libpysal.weights.DistanceBand` + spatial lag |
 | Raster → polygons (GHSL, land use) | Zonal statistics (sum or mean of pixels) | Pixel values are accurate at that resolution | `rasterstats.zonal_stats` |
 
 Advanced options, rarely needed here: pycnophylactic interpolation (smooth surfaces that preserve totals), and regression- or kriging-based downscaling.

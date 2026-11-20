@@ -287,7 +287,7 @@ The curve is flat from 10 to 20, so we use **k = 20** (the script sets a minimum
 | Effective listings per estimate | median **15.2** |
 | Index, population-weighted median | **€17.98** per m² (range €13.7–28.8) |
 
-A ~500 m radius is the same neighbourhood size Pennerstorfer, Pennerstorfer & Neumayr (2024) use for their moving-window status variables.
+A ~500 m radius is the same neighbourhood size Pennerstorfer, Pennerstorfer & Neumayr (2025) use for their moving-window status variables.
 
 ### 4.5 Validation
 
