@@ -6,7 +6,9 @@ The **replication** re-estimates the original design: a straight-line 2SFCA, chi
 
 *Final project, Introduction to Computational Social Science.*
 
-![Reliable access to childcare (DV2R)](analysis/outputs/maps/map4_dv2r_reliable_access.png)
+![Median travel time to the nearest childcare site](analysis/outputs/maps/map1_nearest_site_median.png)
+
+*Median travel time from each 250 m cell to the nearest childcare site, by walking and public transport, over 60 departures between 07:30 and 08:29.*
 
 ## Replication and extension
 
@@ -32,6 +34,20 @@ The **replication** re-estimates the original design: a straight-line 2SFCA, chi
 
 Hypotheses, the current status, outstanding work and limitations are set out in `docs/socioeconomic_analysis_roadmap.md`.
 
+## Results in figures
+
+**Status coefficients.** Each point is the coefficient of one status measure (columns) in a child-weighted OLS model of one access measure (rows), in standard deviations of access per standard deviation of status, with 95% confidence intervals clustered at the level of the status measure. Points to the right of zero indicate that access is higher in higher-status neighbourhoods. The gradient is positive for overall access under every specification, positive for private sites, and negative for public sites; higher-status areas also lose less access at an unfavourable departure (DV3).
+
+![Status coefficients](analysis/outputs/analysis/fig4_coefficients.png)
+
+**Public and private provision.** Reliable access (DV2R) computed separately for the 392 public sites (29 places per 100 children) and the 1,290 private sites (51 places per 100 children), most of which are run by non-profit organisations. Private provision is concentrated in the inner districts and the higher-status west and south-west; public provision is spread more evenly and is relatively stronger in the outer districts north of the Danube and in the south.
+
+![Public and private provision](analysis/outputs/maps/map6_public_vs_private.png)
+
+**Access by departure minute.** Top left: the number of cell–site pairs reachable within 10, 15 and 20 minutes, indexed to 07:30. Top right: scheduled departures by mode at Vienna stops. Bottom: average network access by status tercile at each departure. Bus frequency falls by about 12% over the hour and the number of pairs reachable within 20 minutes by about 4%, but the gap between low- and high-status areas is stable from minute to minute: the status gradient is not an artefact of the chosen departure time.
+
+![Access by departure minute](analysis/outputs/analysis/fig5_by_departure.png)
+
 ## Reproducing the analysis
 
 ```bash
@@ -56,13 +72,17 @@ Each notebook is generated from a script in `analysis/Data/socioeconomic/scripts
 
 Distributions of the main variables, weighted by the number of children aged 0–5. Maps show each variable at its native spatial level; histograms show its distribution across children, with dashed lines at the child-weighted tercile boundaries used in the analysis.
 
-**Demand: children aged 0–5 per km²** (250 m cells; official Zählsprengel counts allocated over the 100 m resident grid)
+**Where children live: children aged 0–5 per km²** (250 m cells; official Zählsprengel counts allocated over the 100 m resident grid)
 
 ![Children aged 0–5](analysis/outputs/eda_socioeconomic/01_children.png)
 
 **Neighbourhood status:** share of 25–64-year-olds with a tertiary degree and mean net income (23 districts), share of employed residents in knowledge-intensive sectors (Zählsprengel), and asking rent per m² for a standard flat (Zählsprengel)
 
 ![Status measures](analysis/outputs/eda_socioeconomic/03_status_measures.png)
+
+**Status terciles.** Each status measure is divided into child-weighted terciles, so that each tercile contains one third of children aged 0–5. The two district-level measures produce large uniform blocks; the Zählsprengel-level measures show variation within districts.
+
+![Status terciles](analysis/outputs/eda_socioeconomic/06_tercile_maps.png)
 
 **Controls:** share of foreign-born residents aged 15–64 (Zählbezirk), employment rate aged 15–64 (Zählsprengel), and municipal housing dwellings per 100 residents (Zählbezirk; robustness only)
 
@@ -74,10 +94,8 @@ Correlations, tercile maps and tercile profiles are in `analysis/outputs/eda_soc
 
 | | |
 |---|---|
-| ![](analysis/outputs/maps/map1_nearest_site_median.png) | ![](analysis/outputs/maps/map2_reliability_shift.png) |
-| **1** Median travel time to the nearest site | **2** Where access rises or falls when travel times must be reliable (DV2R − DV2) |
-| ![](analysis/outputs/maps/map6_public_vs_private.png) | ![](analysis/outputs/maps/map7_bivariate_access_rent_eur_m2_std.png) |
-| **6** Public and private provision | **7** Reliable access and neighbourhood status, by Zählbezirk (bivariate terciles) |
+| ![](analysis/outputs/maps/map4_dv2r_reliable_access.png) | ![](analysis/outputs/maps/map3_straight_line_vs_timetable.png) |
+| **4** Reliable access to childcare (DV2R), places per 100 children | **3** Straight-line distance compared with timetable travel time |
 
 Further maps are in `analysis/outputs/maps/`; the analysis figures are in `analysis/outputs/analysis/`.
 
