@@ -71,7 +71,8 @@ print(f"{len(grid):,} cells, {len(kids):,} with children ({kids.children_u6.sum(
 # ## 2. Map style
 # * `base(ax)`: pale Vienna on a grey-blue background.
 # * `overlays(ax)`: transit lines, Danube, lakes, childcare sites, stops, city outline.
-# * `surface(ax, values, weights)`: the smoothed raster. With `weights` (children) it is a **child-weighted** average, so that parks and industrial areas do not influence the surface; bins with almost no children are left blank.
+# * `smooth(values)` + `bands(...)`: the smoothed raster cut into bands, for maps of the whole city (maps 1 and 3).
+# * `soft_bands(ax, values, ...)`: a **child-weighted** smoothed raster for the access maps (2, 4, 5, 6). Each cell counts by its number of children, so parks and industrial areas do not influence the surface. Opacity rises with the local number of children: sparsely populated fringes fade out rather than ending at a hard edge, and the extreme scores of fringe cells with very few children (a single nearby site shared by a handful of children can yield several hundred places per 100 children) carry little visual weight.
 
 # %%
 BG, CITY_FILL, OUTLINE = "#e8ebee", "#f6f7f4", "#263238"
@@ -129,9 +130,42 @@ def bands(ax, Z, levels, colours, contour_at=(), alpha=.72):
         ax.contour(XX, YY, Z, levels=list(contour_at), colors="#52635a", linewidths=.55, alpha=.65, zorder=2)
     return cs
 
-def colourbar(fig, ax, cmap, norm, label, ticks=None, ticklabels=None, extend="neither"):
+def soft_bands(ax, values, levels, colours, alpha_max=.85, sigma=4, fade=(.005, .05)):
+    """Child-weighted banded surface. Opacity rises with the local (smoothed) number of children, from 0 at
+    `fade[0]` to full at `fade[1]` (shares of the maximum), so sparsely populated fringes fade out instead of
+    ending at a hard edge, and the extreme values of cells with very few children carry little visual weight."""
+    v = np.asarray(values, float); w = grid["children_u6"].to_numpy(float)
+    ok = np.isfinite(v) & (w > 0)
+    num, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=(v * w)[ok])
+    den, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=w[ok])
+    num, den = gaussian_filter(num, sigma), gaussian_filter(den, sigma)
+    Z = num / np.maximum(den, 1e-12)
+    lo, hi = fade[0] * den.max(), fade[1] * den.max()
+    A = np.clip((den - lo) / (hi - lo), 0, 1) * alpha_max
+    A[~INSIDE] = 0
+    rgba = ListedColormap(colours)(BoundaryNorm(levels, len(colours))(Z))
+    rgba[..., 3] = A
+    ax.imshow(np.transpose(rgba, (1, 0, 2)), origin="lower", interpolation="bilinear", zorder=1,
+              extent=[EDGES[0][0], EDGES[0][-1], EDGES[1][0], EDGES[1][-1]])
+
+def district_labels(ax, colour="#52514e"):
+    """Thin district outlines with district numbers, for orientation."""
+    dist.boundary.plot(ax=ax, color=colour, lw=.5, alpha=.55, zorder=7)
+    for _, r in dist.iterrows():
+        pt = r.geometry.representative_point()
+        ax.text(pt.x, pt.y, str(int(r["BEZNR"])), fontsize=10, color=colour, ha="center", va="center", zorder=8,
+                fontweight="bold", alpha=.8)
+
+def note(ax, text, xy=(.015, .985), width=52, va="top"):
+    """Explanatory note in a white box (axes coordinates)."""
+    import textwrap
+    body = "\n\n".join(textwrap.fill(par, width) for par in text.split("\n\n"))
+    ax.text(*xy, body, transform=ax.transAxes, fontsize=11.5, va=va, ha="left", zorder=30, color="#0b0b0b",
+            bbox=dict(boxstyle="round,pad=.6", facecolor="white", edgecolor="#c9c8c3", alpha=.95))
+
+def colourbar(fig, ax, cmap, norm, label, ticks=None, ticklabels=None, extend="neither", shrink=.55):
     cb = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation="horizontal",
-                      shrink=.55, pad=.01, aspect=35, ticks=ticks, extend=extend)
+                      shrink=shrink, pad=.01, aspect=35, ticks=ticks, extend=extend)
     if ticklabels: cb.set_ticklabels(ticklabels)
     cb.set_label(label, fontsize=13); cb.outline.set_visible(False)
     return cb
@@ -187,16 +221,26 @@ save(fig, "map1b_nearest_site_continuous.png")
 grid["reliability_shift"] = grid["dv2_reliable"] - grid["dv2_network"]
 kids["reliability_shift"] = grid.loc[kids.index, "reliability_shift"]
 S_LEVELS = [-1e6, -15, -8, -3, 3, 8, 15, 1e6]
-S_COLOURS = ["#c4501f", "#f39d74", "#f9c9ad", CITY_FILL, "#9ec5f4", "#3987e5", "#184f95"]
+S_COLOURS = ["#c4501f", "#f39d74", "#f9c9ad", "#ecebe6", "#9ec5f4", "#3987e5", "#184f95"]
+S_LABELS = ["> 15\nlost", "8–15\nlost", "3–8\nlost", "± 3\nlittle change", "3–8\ngained", "8–15\ngained", "> 15\ngained"]
 s_cmap = ListedColormap(S_COLOURS)
+cls = np.digitize(kids["reliability_shift"].fillna(0), S_LEVELS[1:-1])          # class 0..6 per cell
+share = np.array([kids.children_u6[cls == i].sum() for i in range(7)]) / kids.children_u6.sum()
 fig, ax = base()
-bands(ax, smooth(grid["reliability_shift"].where(grid.children_u6 > 0), grid["children_u6"]), S_LEVELS, S_COLOURS, alpha=.82)
-overlays(ax)
-colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7), "DV2R − DV2: change in places per 100 children (blue: gain; orange: loss)",
-          [i + .5 for i in range(7)], ["< −15", "−15 to −8", "−8 to −3", "±3", "3 to 8", "8 to 15", "> 15"])
-lost = wmean(kids["reliability_shift"] < -3, kids.children_u6); gained = wmean(kids["reliability_shift"] > 3, kids.children_u6)
-title(ax, "Map 2  Redistribution of access under the reliability requirement (DV2R − DV2)",
-      f"Child-weighted: {gained:.0%} of children gain more than 3 places per 100 children, {lost:.0%} lose more than 3")
+soft_bands(ax, grid["reliability_shift"], S_LEVELS, S_COLOURS, alpha_max=.9)
+overlays(ax, stops_on=False); district_labels(ax)
+colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7),
+          "Change in places per 100 children when travel times must be reliable (DV2R − DV2); in brackets: share of children",
+          [i + .5 for i in range(7)], [f"{l}\n({sh:.0%})" for l, sh in zip(S_LABELS, share)], shrink=.8)
+ax.text(0, -.2,
+        "Reading the map. On an average morning (DV2) a site counts by its typical travel time. Under the reliable measure (DV2R) "
+        "it counts by the time that holds at nine of ten departures, so sites reached by irregular tram or bus connections drop out "
+        "of more distant catchments. Because every place is still allocated to some child, the city-wide total is unchanged at "
+        "80 places per 100 children: the map shows where places move from (orange) and to (blue). Faded areas have few children; "
+        "numbers denote districts.",
+        transform=ax.transAxes, va="top", ha="left", fontsize=12, wrap=True)
+title(ax, "Map 2  Where access rises or falls when travel times must be reliable",
+      f"{share[4:].sum():.0%} of children gain more than 3 places per 100 children; {share[:3].sum():.0%} lose more than 3")
 save(fig, "map2_reliability_shift.png")
 
 # %% [markdown]
@@ -240,7 +284,7 @@ DV_LEVELS = [0] + [round(d) for d in dec] + [1e6]
 DV_COLOURS = LinearSegmentedColormap.from_list("b", BLUE[1:])(np.linspace(0, 1, len(DV_LEVELS) - 1))
 dv_cmap = ListedColormap(DV_COLOURS); dv_norm = BoundaryNorm(DV_LEVELS, dv_cmap.N)
 fig, ax = base()
-bands(ax, smooth(grid["dv2_reliable"].where(grid.children_u6 > 0), grid["children_u6"]), DV_LEVELS, DV_COLOURS, alpha=.8)
+soft_bands(ax, grid["dv2_reliable"], DV_LEVELS, DV_COLOURS)
 overlays(ax, sites=False); site_layer(ax)
 colourbar(fig, ax, dv_cmap, BoundaryNorm(list(range(len(DV_LEVELS))), dv_cmap.N),
           "DV2R: reliably reachable places per 100 children (bands = child-weighted deciles)",
@@ -248,7 +292,7 @@ colourbar(fig, ax, dv_cmap, BoundaryNorm(list(range(len(DV_LEVELS))), dv_cmap.N)
           [f"<{DV_LEVELS[1]}"] + [f"{a}–{b}" for a, b in zip(DV_LEVELS[1:-2], DV_LEVELS[2:-1])] + [f"{DV_LEVELS[-2]}+"])
 ax.legend(loc="lower left", fontsize=11, framealpha=.9, markerscale=1.5)
 title(ax, "Map 4  Reliable access to childcare (DV2R)",
-      f"Child-weighted mean {wmean(kids.dv2_reliable, kids.children_u6):.0f} places per 100 children aged 0–5")
+      f"Child-weighted mean {wmean(kids.dv2_reliable, kids.children_u6):.0f} places per 100 children aged 0–5 · faded areas have few children")
 save(fig, "map4_dv2r_reliable_access.png")
 
 # %% [markdown]
@@ -260,7 +304,7 @@ L_LEVELS = [-1, .02, .05, .10, .15, .25, 1]
 L_COLOURS = [CITY_FILL] + ORANGE[1:]
 l_cmap = ListedColormap(L_COLOURS); l_norm = BoundaryNorm(L_LEVELS, l_cmap.N)
 fig, ax = base()
-bands(ax, smooth(grid["dv3_reliability_loss"].where(grid.children_u6 > 0), grid["children_u6"]), L_LEVELS, L_COLOURS, alpha=.8)
+soft_bands(ax, grid["dv3_reliability_loss"], L_LEVELS, L_COLOURS)
 overlays(ax)
 colourbar(fig, ax, l_cmap, BoundaryNorm(list(range(len(L_LEVELS))), l_cmap.N), "DV3: share of access lost at an unfavourable departure",
           [i + .5 for i in range(len(L_LEVELS) - 1)], ["< 2%", "2–5%", "5–10%", "10–15%", "15–25%", "25%+"])
@@ -280,7 +324,7 @@ fig, axes = plt.subplots(1, 2, figsize=(24, 10.5))
 for ax, (c, lab, pub) in zip(axes, [("dv2r_public", "Public sites", True), ("dv2r_private", "Private and non-profit sites", False)]):
     ax.set_facecolor(BG); gpd.GeoSeries([city], crs=CRS).plot(ax=ax, color=CITY_FILL, zorder=0)
     ax.set_xlim(xmin - PAD, xmax + PAD); ax.set_ylim(ymin - PAD, ymax + PAD); ax.set_axis_off()
-    bands(ax, smooth(grid[c].where(grid.children_u6 > 0), grid["children_u6"]), P_LEVELS, P_COLOURS, alpha=.82)
+    soft_bands(ax, grid[c], P_LEVELS, P_COLOURS)
     overlays(ax, sites=False, stops_on=False)
     f = fac[fac.public == pub]
     ax.scatter(f.geometry.x, f.geometry.y, s=6, marker="D", c="black", alpha=.5, lw=0, zorder=5)
@@ -290,7 +334,7 @@ cb = fig.colorbar(ScalarMappable(norm=BoundaryNorm(P_LEVELS[:-1] + [P_LEVELS[-2]
                   orientation="horizontal", shrink=.4, pad=.02, aspect=40, extend="max")
 cb.set_ticks(P_LEVELS[:-1]); cb.set_ticklabels([f"{v:.0f}" for v in P_LEVELS[:-1]])
 cb.set_label("DV2R: reliably reachable places per 100 children", fontsize=13); cb.outline.set_visible(False)
-fig.suptitle("Map 6  Reliable access to public and private childcare (DV2R)", x=.02, y=.96, ha="left", fontsize=17)
+fig.suptitle("Map 6  Reliable access to public and private childcare (DV2R) · faded areas have few children", x=.02, y=.96, ha="left", fontsize=17)
 fig.savefig(FIG / "map6_public_vs_private.png", bbox_inches="tight", facecolor="white"); plt.show()
 
 # %% [markdown]
@@ -315,18 +359,35 @@ BIV = {(0, 0): "#e8e8e8", (1, 0): "#ace4e4", (2, 0): "#5ac8c8",      # (access, 
 zb = zbz.merge(agg, on="SUB_DISTRICT_CODE", how="left")
 zb["colour"] = [BIV.get((a, s), "#ffffff") if pd.notna(a) else "#ffffff" for a, s in zip(zb.a3, zb.s3)]
 
-fig, ax = base()
-zb.plot(ax=ax, color=zb.colour, edgecolor="white", lw=.5, alpha=.92, zorder=1)
-overlays(ax, sites=False, stops_on=False, district_lines=True)
-lax = ax.inset_axes([.02, .70, .14, .14])                              # legend: 3×3 key
-for (a, s), col in BIV.items():
-    lax.add_patch(plt.Rectangle((a, s), 1, 1, color=col))
-lax.set_xlim(0, 3); lax.set_ylim(0, 3); lax.set_xticks([]); lax.set_yticks([])
-lax.set_xlabel("access (DV2R) →", fontsize=11); lax.set_ylabel(f"status ({STATUS_LABEL}) →", fontsize=11)
-for s_ in lax.spines.values(): s_.set_visible(False)
+tab = agg.pivot_table(index="s3", columns="a3", values="children", aggfunc="sum").reindex(index=[0, 1, 2], columns=[0, 1, 2]).fillna(0)
+tab = tab / tab.to_numpy().sum()
+diag = np.trace(tab.to_numpy())
 rho = agg[["dv2r", "status"]].corr("spearman").iloc[0, 1]
-title(ax, f"Map 7  Access and neighbourhood status, by Zählbezirk",
-      f"Child-weighted terciles of DV2R and the {STATUS_LABEL} · Spearman ρ = {rho:.2f} across {len(agg)} Zählbezirke")
+
+fig, ax = base((14, 14))
+zb.plot(ax=ax, color=zb.colour, edgecolor="white", lw=.5, alpha=.92, zorder=1)
+overlays(ax, sites=False, stops_on=False); district_labels(ax, colour="#263238")
+lax = ax.inset_axes([.035, .765, .15, .15])                               # 3×3 key with the share of children
+for (a_, s_), col in BIV.items():
+    lax.add_patch(plt.Rectangle((a_, s_), 1, 1, color=col, ec="white", lw=1.5))
+    lax.text(a_ + .5, s_ + .5, f"{tab.loc[s_, a_]:.0%}", ha="center", va="center", fontsize=11,
+             color="white" if (a_ + s_) >= 3 else "#0b0b0b")
+lax.set_xlim(0, 3); lax.set_ylim(0, 3)
+lax.set_xticks([.5, 1.5, 2.5], ["Low", "Middle", "High"], fontsize=10.5)
+lax.set_yticks([.5, 1.5, 2.5], ["Low", "Middle", "High"], fontsize=10.5)
+lax.set_xlabel("Access (DV2R) →", fontsize=12); lax.set_ylabel(f"Status ({STATUS_LABEL}) →", fontsize=12)
+lax.tick_params(length=0)
+for sp in lax.spines.values(): sp.set_visible(False)
+lax.set_title("Share of children in each combination", fontsize=11, loc="left", pad=8)
+ax.text(.0, -.015,
+        "Reading the map. Each Zählbezirk is assigned to a child-weighted tercile of reliable access (DV2R) and of "
+        f"neighbourhood status ({STATUS_LABEL}); each tercile holds one third of children. Grey to dark blue along the "
+        "diagonal: access corresponds to status. Pink: higher-status areas with comparatively low access. Turquoise: "
+        f"lower-status areas with comparatively high access. {diag:.0%} of children live on the diagonal (33% would be "
+        f"expected if access and status were unrelated). White: no children. Numbers: districts.",
+        transform=ax.transAxes, va="top", ha="left", fontsize=12, wrap=True)
+title(ax, f"Map 7  Reliable access (DV2R) and neighbourhood status ({STATUS_LABEL}), by Zählbezirk",
+      f"Child-weighted terciles · Spearman ρ = {rho:.2f} across {len(agg)} Zählbezirke")
 save(fig, f"map7_bivariate_access_{STATUS}.png")
 print(pd.crosstab(agg.s3.map({0: "low", 1: "mid", 2: "high"}).rename("status"),
                   agg.a3.map({0: "low", 1: "mid", 2: "high"}).rename("access"), values=agg.children, aggfunc="sum").round(-2))

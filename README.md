@@ -75,9 +75,9 @@ Correlations, tercile maps and tercile profiles are in `analysis/outputs/eda_soc
 | | |
 |---|---|
 | ![](analysis/outputs/maps/map1_nearest_site_median.png) | ![](analysis/outputs/maps/map2_reliability_shift.png) |
-| **1** Median travel time to the nearest site | **2** Redistribution of access under the reliability requirement (DV2R − DV2) |
+| **1** Median travel time to the nearest site | **2** Where access rises or falls when travel times must be reliable (DV2R − DV2) |
 | ![](analysis/outputs/maps/map6_public_vs_private.png) | ![](analysis/outputs/maps/map7_bivariate_access_rent_eur_m2_std.png) |
-| **6** Public and private provision | **7** Access × neighbourhood status, by Zählbezirk |
+| **6** Public and private provision | **7** Reliable access and neighbourhood status, by Zählbezirk (bivariate terciles) |
 
 Further maps are in `analysis/outputs/maps/`; the analysis figures are in `analysis/outputs/analysis/`.
 
