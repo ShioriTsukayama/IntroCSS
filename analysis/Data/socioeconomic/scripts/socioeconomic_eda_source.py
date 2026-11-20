@@ -417,7 +417,7 @@ kid = grid["children_u6"] > 0
 fig, axes = plt.subplots(1, 2, figsize=(12, 5.6), gridspec_kw={"width_ratios": [1.5, 1]})
 vmap(axes[0], grid[kid], "child_density_km2", "Children aged 0–5 per km² (250 m cells)", "children per km²", clip=(0, 98))
 whist(axes[1], grid.loc[kid, "child_density_km2"], grid.loc[kid, "children_u6"],
-      "How dense is it where children live?", "children per km² (cell)", terciles=False, bins=40)
+      "Child density in the cells where children live", "children per km² (cell)", terciles=False, bins=40)
 fig.tight_layout(); fig.savefig(FIG / "01_children.png", bbox_inches="tight"); plt.show()
 
 # %% [markdown]

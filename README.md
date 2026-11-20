@@ -35,6 +35,24 @@ The notebooks run in the following order. Each reads only the outputs of the pre
 
 Each notebook is generated from a script in `analysis/Data/socioeconomic/scripts/*_source.py` by `py_to_ipynb.py`. Changes should be made in the script, after which the notebook is regenerated and executed.
 
+## Variables
+
+Distributions of the main variables, weighted by the number of children aged 0–5. Maps show each variable at its native spatial level; histograms show its distribution across children, with dashed lines at the child-weighted tercile boundaries used in the analysis.
+
+**Demand: children aged 0–5 per km²** (250 m cells; official Zählsprengel counts allocated over the 100 m resident grid)
+
+![Children aged 0–5](analysis/outputs/eda_socioeconomic/01_children.png)
+
+**Neighbourhood status:** share of 25–64-year-olds with a tertiary degree and mean net income (23 districts), share of employed residents in knowledge-intensive sectors (Zählsprengel), and asking rent per m² for a standard flat (Zählsprengel)
+
+![Status measures](analysis/outputs/eda_socioeconomic/03_status_measures.png)
+
+**Controls:** share of foreign-born residents aged 15–64 (Zählbezirk), employment rate aged 15–64 (Zählsprengel), and municipal housing dwellings per 100 residents (Zählbezirk; robustness only)
+
+![Controls](analysis/outputs/eda_socioeconomic/04_controls.png)
+
+Correlations, tercile maps and tercile profiles are in `analysis/outputs/eda_socioeconomic/`; their construction is documented in `analysis/socioeconomic_eda.ipynb`.
+
 ## Maps
 
 | | |
