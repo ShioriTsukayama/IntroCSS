@@ -1,7 +1,7 @@
 # %% [markdown]
 # # Childcare access in Vienna: maps
 #
-# **Purpose.** This notebook produces the presentation maps of the project: smoothed travel-time surfaces, the redistribution of access under the reliability requirement, the comparison of straight-line and timetable-based proximity, and the reliable network 2SFCA (**DV2R**, the primary access measure) in relation to neighbourhood status. All maps share a common style: Vienna on a pale background, the tram/bus/U-Bahn network in black, the Danube and lakes in navy, childcare sites as small diamonds.
+# **Purpose.** This notebook produces the presentation maps of the project: smoothed travel-time surfaces, the redistribution of access under the reliability requirement, the comparison of straight-line and timetable-based proximity, and the reliable network 2SFCA (**DV2R**, the primary access measure) in relation to neighbourhood status. All maps share a common style: Vienna on a pale background, the tram/bus/U-Bahn network in black, water in light grey-blue with a dark outline, childcare sites as small black diamonds (public sites as open circles where providers are distinguished), and areas with few or no children in grey.
 #
 # **Inputs.** The notebook runs in about 20 seconds and requires no routing. It reads only files already present in the repository:
 #
@@ -22,6 +22,7 @@
 from pathlib import Path
 import warnings
 import numpy as np, pandas as pd, geopandas as gpd
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import BoundaryNorm, ListedColormap, LinearSegmentedColormap, Normalize
@@ -72,7 +73,7 @@ print(f"{len(grid):,} cells, {len(kids):,} with children ({kids.children_u6.sum(
 # * `base(ax)`: pale Vienna on a grey-blue background.
 # * `overlays(ax)`: transit lines, Danube, lakes, childcare sites, stops, city outline.
 # * `smooth(values)` + `bands(...)`: the smoothed raster cut into bands, for maps of the whole city (maps 1 and 3).
-# * `soft_bands(ax, values, ...)`: a **child-weighted** smoothed raster for the access maps (2, 4, 5, 6). Each cell counts by its number of children, so parks and industrial areas do not influence the surface. Opacity rises with the local number of children: sparsely populated fringes fade out rather than ending at a hard edge, and the extreme scores of fringe cells with very few children (a single nearby site shared by a handful of children can yield several hundred places per 100 children) carry little visual weight.
+# * `soft_bands(ax, values, ...)`: a **child-weighted** smoothed raster for the access maps (2, 4, 5, 6). Each cell counts by its number of children, so parks and industrial areas do not influence the surface. Opacity rises with the local number of children, and areas with few or no children are shown in grey: sparsely populated fringes blend into grey rather than ending at a hard edge, low access is not confused with absent children, and the extreme scores of fringe cells with very few children (a single nearby site shared by a handful of children can yield several hundred places per 100 children) carry little visual weight.
 
 # %%
 BG, CITY_FILL, OUTLINE = "#e8ebee", "#f6f7f4", "#263238"
@@ -93,14 +94,19 @@ def base(figsize=(14, 13)):
     for s in ax.spines.values(): s.set_visible(False)
     return fig, ax
 
+WATER_FILL, WATER_EDGE = "#c9d8e0", "#4a6676"     # light fill + dark outline: stands out on blue shading and on pale ground
+EMPTY = "#d9d8d2"                                  # areas with few or no children (access maps)
+# Marker sizes are in points, so they are scaled to this 14-inch canvas (the original style used 20 inches).
+STOP_S, SITE_S, PUB_S, PRIV_S = 1.6, 3, 15, 7
+
 def overlays(ax, sites=True, stops_on=True, district_lines=False):
-    lines.plot(ax=ax, color="black", lw=.6, alpha=.38, zorder=2)
-    donau.plot(ax=ax, color="#3180AB", lw=1.1, alpha=.5, zorder=3)
-    water.plot(ax=ax, color="#003153", alpha=.58, zorder=4)
+    lines.plot(ax=ax, color="black", lw=.5, alpha=.35, zorder=2)
+    donau.plot(ax=ax, color=WATER_EDGE, lw=1.3, alpha=.9, zorder=3)
+    water.plot(ax=ax, facecolor=WATER_FILL, edgecolor=WATER_EDGE, lw=.5, alpha=1, zorder=4)
     if sites:
-        fac.plot(ax=ax, color="black", markersize=7, marker="D", alpha=.45, zorder=5)
+        ax.scatter(fac.geometry.x, fac.geometry.y, s=SITE_S, marker="D", c="black", alpha=.55, lw=0, zorder=5)
     if stops_on:
-        ax.scatter(stops.geometry.x, stops.geometry.y, s=4, c="grey", alpha=.45, zorder=6)
+        ax.scatter(stops.geometry.x, stops.geometry.y, s=STOP_S, c="#6f6f6f", alpha=.4, lw=0, zorder=6)
     if district_lines:
         dist.boundary.plot(ax=ax, color=OUTLINE, lw=.4, alpha=.6, zorder=7)
     gpd.GeoSeries([city], crs=CRS).boundary.plot(ax=ax, color=OUTLINE, lw=1.8, zorder=20)
@@ -132,7 +138,7 @@ def bands(ax, Z, levels, colours, contour_at=(), alpha=.72):
 
 def soft_bands(ax, values, levels, colours, alpha_max=.85, sigma=4, fade=(.005, .05)):
     """Child-weighted banded surface. Opacity rises with the local (smoothed) number of children, from 0 at
-    `fade[0]` to full at `fade[1]` (shares of the maximum), so sparsely populated fringes fade out instead of
+    `fade[0]` to full at `fade[1]` (shares of the maximum), so sparsely populated fringes blend into grey instead of
     ending at a hard edge, and the extreme values of cells with very few children carry little visual weight."""
     v = np.asarray(values, float); w = grid["children_u6"].to_numpy(float)
     ok = np.isfinite(v) & (w > 0)
@@ -145,8 +151,11 @@ def soft_bands(ax, values, levels, colours, alpha_max=.85, sigma=4, fade=(.005, 
     A[~INSIDE] = 0
     rgba = ListedColormap(colours)(BoundaryNorm(levels, len(colours))(Z))
     rgba[..., 3] = A
-    ax.imshow(np.transpose(rgba, (1, 0, 2)), origin="lower", interpolation="bilinear", zorder=1,
-              extent=[EDGES[0][0], EDGES[0][-1], EDGES[1][0], EDGES[1][-1]])
+    ext = [EDGES[0][0], EDGES[0][-1], EDGES[1][0], EDGES[1][-1]]
+    grey = np.zeros(Z.shape + (4,)); grey[..., :3] = matplotlib.colors.to_rgb(EMPTY)
+    grey[..., 3] = np.where(INSIDE, 1 - A / alpha_max, 0)            # few or no children: grey, fading into the access colours
+    ax.imshow(np.transpose(grey, (1, 0, 2)), origin="lower", interpolation="bilinear", zorder=.5, extent=ext)
+    ax.imshow(np.transpose(rgba, (1, 0, 2)), origin="lower", interpolation="bilinear", zorder=1, extent=ext)
 
 def district_labels(ax, colour="#52514e"):
     """Thin district outlines with district numbers, for orientation."""
@@ -155,6 +164,28 @@ def district_labels(ax, colour="#52514e"):
         pt = r.geometry.representative_point()
         ax.text(pt.x, pt.y, str(int(r["BEZNR"])), fontsize=10, color=colour, ha="center", va="center", zorder=8,
                 fontweight="bold", alpha=.8)
+
+def provider_sites(ax, which=("public", "private")):
+    """Sites by provider, distinguished by shape so they remain legible on any shading."""
+    if "private" in which:
+        f = fac[~fac.public]
+        ax.scatter(f.geometry.x, f.geometry.y, s=PRIV_S, marker="D", c="black", alpha=.6, lw=0, zorder=5)
+    if "public" in which:
+        f = fac[fac.public]
+        ax.scatter(f.geometry.x, f.geometry.y, s=PUB_S, marker="o", facecolors="white", edgecolors="black", lw=.7, zorder=6)
+
+def map_legend(ax, sites="generic", empty=True, loc="upper left"):
+    h = []
+    if sites == "generic":
+        h.append(Line2D([], [], ls="", marker="D", ms=4, mfc="black", mec="none", alpha=.6, label=f"Childcare site ({len(fac):,})"))
+    elif sites in ("provider", "public"):
+        h.append(Line2D([], [], ls="", marker="o", ms=6, mfc="white", mec="black", label=f"Public site ({fac.public.sum():,})"))
+    if sites in ("provider", "private"):
+        h.append(Line2D([], [], ls="", marker="D", ms=4.5, mfc="black", mec="none", alpha=.6, label=f"Private / non-profit site ({(~fac.public).sum():,})"))
+    h.append(Patch(facecolor=WATER_FILL, edgecolor=WATER_EDGE, label="Water"))
+    if empty:
+        h.append(Patch(facecolor=EMPTY, edgecolor="none", label="Few or no children"))
+    ax.legend(handles=h, loc=loc, fontsize=11, framealpha=.92)
 
 def note(ax, text, xy=(.015, .985), width=52, va="top"):
     """Explanatory note in a white box (axes coordinates)."""
@@ -221,22 +252,24 @@ save(fig, "map1b_nearest_site_continuous.png")
 grid["reliability_shift"] = grid["dv2_reliable"] - grid["dv2_network"]
 kids["reliability_shift"] = grid.loc[kids.index, "reliability_shift"]
 S_LEVELS = [-1e6, -15, -8, -3, 3, 8, 15, 1e6]
-S_COLOURS = ["#c4501f", "#f39d74", "#f9c9ad", "#ecebe6", "#9ec5f4", "#3987e5", "#184f95"]
+S_COLOURS = ["#c4501f", "#f39d74", "#f9c9ad", "#f7f6f2", "#9ec5f4", "#3987e5", "#184f95"]
 S_LABELS = ["> 15\nlost", "8–15\nlost", "3–8\nlost", "± 3\nlittle change", "3–8\ngained", "8–15\ngained", "> 15\ngained"]
 s_cmap = ListedColormap(S_COLOURS)
 cls = np.digitize(kids["reliability_shift"].fillna(0), S_LEVELS[1:-1])          # class 0..6 per cell
 share = np.array([kids.children_u6[cls == i].sum() for i in range(7)]) / kids.children_u6.sum()
 fig, ax = base()
 soft_bands(ax, grid["reliability_shift"], S_LEVELS, S_COLOURS, alpha_max=.9)
-overlays(ax, stops_on=False); district_labels(ax)
-colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7),
+overlays(ax, stops_on=False); district_labels(ax); map_legend(ax)
+cb = colourbar(fig, ax, s_cmap, BoundaryNorm(list(range(8)), 7),
           "Change in places per 100 children when travel times must be reliable (DV2R − DV2); in brackets: share of children",
           [i + .5 for i in range(7)], [f"{l}\n({sh:.0%})" for l, sh in zip(S_LABELS, share)], shrink=.8)
+cb.outline.set_visible(True); cb.outline.set_linewidth(.6); cb.outline.set_edgecolor("#9a9993")
+cb.ax.vlines(range(1, 7), 0, 1, transform=cb.ax.get_xaxis_transform(), colors="white", lw=1.2)
 ax.text(0, -.2,
         "Reading the map. On an average morning (DV2) a site counts by its typical travel time. Under the reliable measure (DV2R) "
         "it counts by the time that holds at nine of ten departures, so sites reached by irregular tram or bus connections drop out "
         "of more distant catchments. Because every place is still allocated to some child, the city-wide total is unchanged at "
-        "80 places per 100 children: the map shows where places move from (orange) and to (blue). Faded areas have few children; "
+        "80 places per 100 children: the map shows where places move from (orange) and to (blue). Grey areas have few or no children; "
         "numbers denote districts.",
         transform=ax.transAxes, va="top", ha="left", fontsize=12, wrap=True)
 title(ax, "Map 2  Where access rises or falls when travel times must be reliable",
@@ -267,15 +300,9 @@ save(fig, "map3_straight_line_vs_timetable.png")
 # %% [markdown]
 # ## 6. Map 4: reliable network access (DV2R)
 # The primary access measure: the reliable network 2SFCA, with a Gaussian catchment of 15 minutes evaluated at the 90th-percentile travel time. The measure incorporates competition, since each site's places are shared among all children who can reach it. Child-weighted smoothing; the bands are **child-weighted deciles**, so that each colour represents approximately one tenth of children.
-# Sites are distinguished by provider (blue: public, municipal; black: private, predominantly non-profit) and scaled by the number of places.
+# Sites are distinguished by shape: open circles for public (municipal) sites, small black diamonds for private, predominantly non-profit sites. Grey areas have few or no children.
 
 # %%
-def site_layer(ax):
-    for pub, col, lab in [(True, "#184f95", "public"), (False, "black", "private / non-profit")]:
-        f = fac[fac.public == pub]
-        ax.scatter(f.geometry.x, f.geometry.y, s=np.sqrt(f["KDG_3_6"].fillna(0) + f["KLEINKINDER_0_3"].fillna(0) + 1) * 1.6,
-                   marker="D", c=col, alpha=.5, lw=0, zorder=5, label=f"{lab} site ({len(f):,})")
-
 dv = kids["dv2_reliable"]
 order = dv.sort_values().index
 cum = kids.loc[order, "children_u6"].cumsum() / kids.children_u6.sum()
@@ -285,14 +312,14 @@ DV_COLOURS = LinearSegmentedColormap.from_list("b", BLUE[1:])(np.linspace(0, 1, 
 dv_cmap = ListedColormap(DV_COLOURS); dv_norm = BoundaryNorm(DV_LEVELS, dv_cmap.N)
 fig, ax = base()
 soft_bands(ax, grid["dv2_reliable"], DV_LEVELS, DV_COLOURS)
-overlays(ax, sites=False); site_layer(ax)
+overlays(ax, sites=False); provider_sites(ax)
 colourbar(fig, ax, dv_cmap, BoundaryNorm(list(range(len(DV_LEVELS))), dv_cmap.N),
           "DV2R: reliably reachable places per 100 children (bands = child-weighted deciles)",
           [i + .5 for i in range(len(DV_LEVELS) - 1)],
           [f"<{DV_LEVELS[1]}"] + [f"{a}–{b}" for a, b in zip(DV_LEVELS[1:-2], DV_LEVELS[2:-1])] + [f"{DV_LEVELS[-2]}+"])
-ax.legend(loc="lower left", fontsize=11, framealpha=.9, markerscale=1.5)
+map_legend(ax, sites="provider")
 title(ax, "Map 4  Reliable access to childcare (DV2R)",
-      f"Child-weighted mean {wmean(kids.dv2_reliable, kids.children_u6):.0f} places per 100 children aged 0–5 · faded areas have few children")
+      f"Child-weighted mean {wmean(kids.dv2_reliable, kids.children_u6):.0f} places per 100 children aged 0–5")
 save(fig, "map4_dv2r_reliable_access.png")
 
 # %% [markdown]
@@ -305,7 +332,7 @@ L_COLOURS = [CITY_FILL] + ORANGE[1:]
 l_cmap = ListedColormap(L_COLOURS); l_norm = BoundaryNorm(L_LEVELS, l_cmap.N)
 fig, ax = base()
 soft_bands(ax, grid["dv3_reliability_loss"], L_LEVELS, L_COLOURS)
-overlays(ax)
+overlays(ax); map_legend(ax)
 colourbar(fig, ax, l_cmap, BoundaryNorm(list(range(len(L_LEVELS))), l_cmap.N), "DV3: share of access lost at an unfavourable departure",
           [i + .5 for i in range(len(L_LEVELS) - 1)], ["< 2%", "2–5%", "5–10%", "10–15%", "15–25%", "25%+"])
 title(ax, "Map 5  Access lost at an unfavourable departure minute (DV3)",
@@ -327,14 +354,15 @@ for ax, (c, lab, pub) in zip(axes, [("dv2r_public", "Public sites", True), ("dv2
     soft_bands(ax, grid[c], P_LEVELS, P_COLOURS)
     overlays(ax, sites=False, stops_on=False)
     f = fac[fac.public == pub]
-    ax.scatter(f.geometry.x, f.geometry.y, s=6, marker="D", c="black", alpha=.5, lw=0, zorder=5)
+    provider_sites(ax, ("public",) if pub else ("private",))
+    map_legend(ax, sites="public" if pub else "private")
     ax.set_title(f"{lab}: {wmean(kids[c], kids.children_u6):.0f} places per 100 children · {len(f):,} sites", loc="left", fontsize=15)
 p_cmap = ListedColormap(P_COLOURS)
 cb = fig.colorbar(ScalarMappable(norm=BoundaryNorm(P_LEVELS[:-1] + [P_LEVELS[-2] * 1.15], p_cmap.N), cmap=p_cmap), ax=axes,
                   orientation="horizontal", shrink=.4, pad=.02, aspect=40, extend="max")
 cb.set_ticks(P_LEVELS[:-1]); cb.set_ticklabels([f"{v:.0f}" for v in P_LEVELS[:-1]])
 cb.set_label("DV2R: reliably reachable places per 100 children", fontsize=13); cb.outline.set_visible(False)
-fig.suptitle("Map 6  Reliable access to public and private childcare (DV2R) · faded areas have few children", x=.02, y=.96, ha="left", fontsize=17)
+fig.suptitle("Map 6  Reliable access to public and private childcare (DV2R)", x=.02, y=.96, ha="left", fontsize=17)
 fig.savefig(FIG / "map6_public_vs_private.png", bbox_inches="tight", facecolor="white"); plt.show()
 
 # %% [markdown]
