@@ -83,7 +83,7 @@ INK, INK2, MISSING = "#0b0b0b", "#52514e", "#ebeae6"
 plt.rcParams.update({"figure.dpi": 110, "savefig.dpi": 200, "font.size": 9, "axes.edgecolor": INK2,
                      "axes.labelcolor": INK, "xtick.color": INK2, "ytick.color": INK2,
                      "axes.spines.top": False, "axes.spines.right": False})
-print(NOTEBOOK_DIR)
+print("project folder:", NOTEBOOK_DIR.name)
 
 # %% [markdown]
 # ### Helpers
@@ -248,14 +248,20 @@ print(f"education {edu_year}, income {inc_year}")
 
 # %%
 rent_idx = pd.read_csv(PROC / "zsp_rent_index.csv")
-wh_clean = gpd.read_file(PROC / "willhaben_listings_clean.gpkg").to_crs(GRID_CRS)
-wh = pd.read_csv(RAW / "willhaben_rents_2026-11-16.csv", dtype=str)
-wh_xy = wh["COORDINATES"].str.split(",", expand=True).astype(float)
-wh = gpd.GeoDataFrame(wh, geometry=gpd.points_from_xy(wh_xy[1], wh_xy[0]), crs=4326).to_crs(GRID_CRS)
-onur = pd.read_csv(NOTEBOOK_DIR.parent / "Onur Code" / "Willhaben_rent_prices (1).csv")
-onur = gpd.GeoDataFrame(onur, geometry=gpd.points_from_xy(onur["Longs"], onur["Lats"]), crs=4326).to_crs(GRID_CRS)
-print(f"rent index for {rent_idx['rent_eur_m2_std'].notna().sum():,} Zählsprengel; "
-      f"{len(wh):,} scraped / {len(wh_clean):,} clean listings; Onur's earlier scrape {len(onur):,}")
+# Listing-level files are scraped adverts and are not redistributed (see README). Only the aggregated
+# index above is needed for the analysis; the listing maps in §3e are skipped when these files are absent.
+WH_CLEAN, WH_RAW = PROC / "willhaben_listings_clean.gpkg", RAW / "willhaben_rents_2026-11-16.csv"
+ONUR_RAW = NOTEBOOK_DIR.parent / "Onur Code" / "Willhaben_rent_prices (1).csv"
+LISTINGS = WH_CLEAN.exists() and WH_RAW.exists() and ONUR_RAW.exists()
+if LISTINGS:
+    wh_clean = gpd.read_file(WH_CLEAN).to_crs(GRID_CRS)
+    wh = pd.read_csv(WH_RAW, dtype=str)
+    wh_xy = wh["COORDINATES"].str.split(",", expand=True).astype(float)
+    wh = gpd.GeoDataFrame(wh, geometry=gpd.points_from_xy(wh_xy[1], wh_xy[0]), crs=4326).to_crs(GRID_CRS)
+    onur = pd.read_csv(ONUR_RAW)
+    onur = gpd.GeoDataFrame(onur, geometry=gpd.points_from_xy(onur["Longs"], onur["Lats"]), crs=4326).to_crs(GRID_CRS)
+print(f"rent index for {rent_idx['rent_eur_m2_std'].notna().sum():,} Zählsprengel"
+      + (f"; {len(wh):,} scraped / {len(wh_clean):,} clean listings; Onur's earlier scrape {len(onur):,}" if LISTINGS else "; listing files not present"))
 
 # %% [markdown]
 # ### 2g. Municipal housing estates (*Gemeindebau*)
@@ -456,27 +462,30 @@ grid["rent_eur_m2_std"] = grid["zsp_id"].map(rent_idx.set_index(pd.to_numeric(re
 # **Listing locations.** Left: Onur's earlier scrape, geocoded by Google from the address text. A third of the addresses have no street, so Google put them on their district's centre (orange circles; size = number of listings). Right: the new scrape uses willhaben's own coordinates. Adverts located only to a postcode centre (orange) are dropped for the same reason.
 
 # %%
-wh["status"] = np.where(wh["ADID"].astype(str).isin(wh_clean["ADID"].astype(str)), "kept",
-                np.where(wh["LOCATION_QUALITY"].astype(float) < 0.75, "postcode", "other"))
-onur["no_street"] = onur["Address"].str.count(",") <= 2           # "1100 Wien, 10. Bezirk, Favoriten"
-stack_n = onur[onur.no_street].geometry.apply(lambda g: (round(g.x, -1), round(g.y, -1))).value_counts()
-stack_pts = gpd.GeoSeries(gpd.points_from_xy([k[0] for k in stack_n.index], [k[1] for k in stack_n.index]), crs=GRID_CRS)
+if not LISTINGS:
+    print("Listing files not present: skipping this map (the saved figure is outputs/eda_socioeconomic/02a_rent_listing_locations.png).")
+else:
+    wh["status"] = np.where(wh["ADID"].astype(str).isin(wh_clean["ADID"].astype(str)), "kept",
+                    np.where(wh["LOCATION_QUALITY"].astype(float) < 0.75, "postcode", "other"))
+    onur["no_street"] = onur["Address"].str.count(",") <= 2           # "1100 Wien, 10. Bezirk, Favoriten"
+    stack_n = onur[onur.no_street].geometry.apply(lambda g: (round(g.x, -1), round(g.y, -1))).value_counts()
+    stack_pts = gpd.GeoSeries(gpd.points_from_xy([k[0] for k in stack_n.index], [k[1] for k in stack_n.index]), crs=GRID_CRS)
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 6.4))
-for ax in axes:
-    districts.boundary.plot(ax=ax, color=INK2, lw=.35); ax.set_axis_off()
-onur[~onur.no_street].plot(ax=axes[0], color=CAT["blue"], markersize=2, alpha=.6, label=f"street address ({(~onur.no_street).sum():,})")
-stack_pts.plot(ax=axes[0], color=CAT["orange"], markersize=np.sqrt(stack_n.values) * 14, alpha=.75, edgecolor="white", lw=.8,
-               label=f"no street → district centre ({onur.no_street.sum():,})")
-axes[0].set_title(f"Onur's scrape, Oct 2026: {len(onur):,} listings, geocoded by Google", fontsize=10, loc="left")
-for key, lab, col, ms in [("kept", "kept", CAT["blue"], 2), ("other", "dropped by other cleaning rules", CAT["grey"], 2),
-                          ("postcode", "dropped: postcode centre only", CAT["orange"], 14)]:
-    d = wh[wh.status == key]
-    d.plot(ax=axes[1], color=col, markersize=ms, alpha=.7, label=f"{lab} ({len(d):,})")
-axes[1].set_title(f"New scrape, 16 Nov 2026: {len(wh):,} listings, willhaben's coordinates", fontsize=10, loc="left")
-for ax in axes:
-    ax.legend(loc="lower left", fontsize=8, frameon=False, markerscale=2)
-fig.tight_layout(); fig.savefig(FIG / "02a_rent_listing_locations.png", bbox_inches="tight"); plt.show()
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6.4))
+    for ax in axes:
+        districts.boundary.plot(ax=ax, color=INK2, lw=.35); ax.set_axis_off()
+    onur[~onur.no_street].plot(ax=axes[0], color=CAT["blue"], markersize=2, alpha=.6, label=f"street address ({(~onur.no_street).sum():,})")
+    stack_pts.plot(ax=axes[0], color=CAT["orange"], markersize=np.sqrt(stack_n.values) * 14, alpha=.75, edgecolor="white", lw=.8,
+                   label=f"no street → district centre ({onur.no_street.sum():,})")
+    axes[0].set_title(f"Onur's scrape, Oct 2026: {len(onur):,} listings, geocoded by Google", fontsize=10, loc="left")
+    for key, lab, col, ms in [("kept", "kept", CAT["blue"], 2), ("other", "dropped by other cleaning rules", CAT["grey"], 2),
+                              ("postcode", "dropped: postcode centre only", CAT["orange"], 14)]:
+        d = wh[wh.status == key]
+        d.plot(ax=axes[1], color=col, markersize=ms, alpha=.7, label=f"{lab} ({len(d):,})")
+    axes[1].set_title(f"New scrape, 16 Nov 2026: {len(wh):,} listings, willhaben's coordinates", fontsize=10, loc="left")
+    for ax in axes:
+        ax.legend(loc="lower left", fontsize=8, frameon=False, markerscale=2)
+    fig.tight_layout(); fig.savefig(FIG / "02a_rent_listing_locations.png", bbox_inches="tight"); plt.show()
 
 # %% [markdown]
 # **Listings per Zählsprengel.** The finest official unit is too thin for a raw average: most Zählsprengel have 0–2 listings. This is why the index borrows from the 20 nearest listings instead.

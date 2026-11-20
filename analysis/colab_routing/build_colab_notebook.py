@@ -6,19 +6,19 @@ md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
 cells = [
 md("""# Minute-by-minute routing to childcare, Vienna (Google Colab)
 
-Re-runs the walking + public-transport routing of `vienna_childcare_accessibility.ipynb` for **every minute** of the morning, not six 10-minute windows. The output is one origin × destination travel-time matrix per departure minute, in **exactly the format of the existing matrices** (`outputs/origin_destination_matrices/*.npz`), so `accessibility_analysis.ipynb` reads it with one changed folder path.
+Walking + public-transport routing from every 250 m cell to every childcare site, for **every minute** of the morning (an earlier version of the project used six 10-minute windows). The output is one origin × destination travel-time matrix per departure minute, in **exactly the format of the existing matrices** (`outputs/origin_destination_matrices/*.npz`), so `accessibility_analysis.ipynb` reads it with one changed folder path.
 
 **What is the same as the original routing:** Tuesday 20 Oct 2026, the same GTFS feed, walk + transit with walking access and egress, 4.5 km/h, 30-minute cut-off, the same 6,950 grid origins (`o0…`) and 1,682 childcare sites (`d0…`) in the same order. The OSM street network is the same file, clipped to the Vienna area (all roads within ~2–3 km of every transit stop, more than a 30-minute walk), so that it fits in Colab's memory.
 
 **What is different:** `departure_time_window` = **1 minute** (the original used r5py's default of 10 minutes and stored the median over those 10 minutes). Each file is therefore one real departure. Section 6 checks that the median of the ten 1-minute runs 07:30–07:39 reproduces the old 07:30 matrix.
 
 ### Before you start
-1. **Upload** the folder `colab_routing_upload/` to Google Drive as `MyDrive/vienna_routing/` (it holds `origins.csv`, `destinations.csv`, `gtfs.zip`, `vienna-261020.osm.pbf`, `reference_10min_window_0730.npz`).
+1. **Upload** these five files to Google Drive as `MyDrive/vienna_routing/`: `origins.csv`, `destinations.csv`, `reference_10min_window_0730.npz` (all in this folder) and `gtfs.zip`, `vienna-261020.osm.pbf` (run `python get_data.py` in the repository root to download them).
 2. **Runtime → Change runtime type → CPU**, with **High-RAM** if you have Colab Pro. A GPU does nothing for this routing (R5 is CPU-only Java), so don't pay for one. Speed scales with the number of CPU cores: free Colab has **2 cores**, which is likely *slower* than your own 8-core laptop or desktop. **Measured on the 8-core MacBook:** about 3–5 minutes per departure, so **4–5 hours for all 60**. Free Colab is likely 3–4× slower (15–20 h), longer than its ~12 h session limit, so either use Colab Pro (High-RAM CPU runtime, more cores), or split the work with `SHARD` over two or three sessions, or simply reconnect and rerun (finished minutes are kept). Cell 5 times the first departure and prints an estimate for the rest.
 3. **Run all cells.** If Colab disconnects, reconnect and **run all again**: finished minutes are saved in Drive and skipped.
 
 ### Output
-`MyDrive/vienna_routing/origin_destination_matrices_1min/2026-10-20_HHMM.npz`, one per minute, plus `progress.csv`. Copy the folder to `'My' Code/outputs/origin_destination_matrices_1min/`."""),
+`MyDrive/vienna_routing/origin_destination_matrices_1min/2026-10-20_HHMM.npz`, one per minute, plus `progress.csv`. Copy the folder to `analysis/outputs/origin_destination_matrices_1min/` (or download the finished matrices with `python get_data.py`)."""),
 
 md("## 1. Settings"),
 code('''DRIVE_DIR = "/content/drive/MyDrive/vienna_routing"   # where the inputs were uploaded; outputs go here too
@@ -219,7 +219,7 @@ plt.tight_layout(); plt.show()'''),
 md("""## 8. Bring the results home
 The matrices are already in Drive (`MyDrive/vienna_routing/origin_destination_matrices_1min/`, ~1.7 MB each, ~100 MB for 60). Download that folder (or run the cell below for a single zip) and put it at:
 
-`Final Project/'My' Code/outputs/origin_destination_matrices_1min/`
+`analysis/outputs/origin_destination_matrices_1min/`
 
 Then, in `accessibility_analysis.ipynb` §1, change `OUT / "origin_destination_matrices"` to `OUT / "origin_destination_matrices_1min"`. Everything downstream (DV2, DV3, Fig. 5) then uses 60 departures, and DV3's 10th percentile becomes a true 10th percentile.
 

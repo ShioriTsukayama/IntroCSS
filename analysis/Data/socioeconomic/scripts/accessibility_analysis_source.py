@@ -12,7 +12,7 @@
 # | Status in figures | **terciles** (low / middle / high), each holding about one third of children, as in Pennerstorfer |
 # | Standard errors | clustered at the coarsest level of any variable in the model |
 # | Travel-time catchment | Gaussian decay reaching zero at **15 min** (main); 10 and 20 min as robustness |
-# | Departures | **every minute 07:30–08:29** (60 departures), walk + Wiener Linien / Wiener Lokalbahnen timetable of Tue 20 Oct 2026. The earlier 6-departure version is in `deprecated/` |
+# | Departures | **every minute 07:30–08:29** (60 departures), walk + Wiener Linien / Wiener Lokalbahnen timetable of Tue 20 Oct 2026. |
 
 # %%
 from pathlib import Path
@@ -607,7 +607,7 @@ ci_tab.to_csv(FIG / "concentration_indices.csv"); ci_tab.round(3)
 
 # %% [markdown]
 # ### Fig. 9: how much does access vary with departure minute?
-# Redraws the variability maps of the routing notebook (`vienna_childcare_accessibility.ipynb`, figure 2) with the 60 one-minute departures, over the transit network, water and childcare sites. **Left:** SD of the time to the nearest site (minutes): zero almost everywhere, because the nearest site is usually walkable. **Right:** SD of network 2SFCA across departures (places per 100 children): this is where the timetable matters, through sites reached by tram or bus. Colours saturate at the 95th percentile. Cells without children are not shown.
+# Variability across the 60 one-minute departures, over the transit network, water and childcare sites. **Left:** SD of the time to the nearest site (minutes): zero almost everywhere, because the nearest site is usually walkable. **Right:** SD of network 2SFCA across departures (places per 100 children): this is where the timetable matters, through sites reached by tram or bus. Colours saturate at the 95th percentile. Cells without children are not shown.
 
 # %%
 del tt, T90, T_MED                                             # the raw matrices are no longer needed; frees ~3 GB
@@ -656,4 +656,4 @@ keep = ["gid", "origin_id", "dv1_euclid", "dv2_reliable", "dv2_network", "dv2r_p
         "dv2r_share15", "dv2r_p80", "dv2r_p95", "dv3_reliability_loss", "nearest_sd_min", "nearest_p90_min", "access_sd",
         "ubahn_in_cell", "log_child_density", "rent_eur_m2_std"]
 grid[keep].join(df[["rank_shift"]]).to_csv(PROC / "grid250_access_measures.csv", index=False)
-print("saved", PROC / "grid250_access_measures.csv", "and figures in", FIG)
+print("saved", (PROC / "grid250_access_measures.csv").relative_to(ROOT), "and figures in", FIG.relative_to(ROOT))

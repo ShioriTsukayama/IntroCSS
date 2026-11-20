@@ -1,9 +1,7 @@
 .DS_Store
 .ipynb_checkpoints/
 __pycache__/
-# large raw inputs, kept locally only
+# large inputs: download with `python get_data.py`
 *.osm.pbf
-gtfs.zip
-*.npz
-analysis/Data/socioeconomic/raw/
-analysis/outputs/origin_destination_matrices*/
+analysis/Data/gtfs.zip
+analysis/outputs/origin_destination_matrices_1min/
