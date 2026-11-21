@@ -11,8 +11,8 @@
 # | `Data/socioeconomic/processed/grid250_access_measures.csv`: DV1, DV2R, DV2, DV3 per cell | `accessibility_analysis.ipynb` |
 # | `outputs/nearest_site_time_by_cell.csv`: time to the nearest site across the 60 departures | `routing.ipynb` |
 # | `Data/KINDERGARTENOGD.json`, `Data/BEZIRKSGRENZEOGD.json` | City of Vienna open data |
-# | `outputs/gtfs_route_lines_vienna.gpkg`, `outputs/gtfs_stops_vienna.csv` | cached from the Wiener Linien GTFS |
-# | `outputs/vienna_natural_water.geojson`, `outputs/vienna_donau_rivers.geojson` | cached from OpenStreetMap (OSMnx) |
+# | `outputs/gtfs_route_lines_vienna.gpkg` | `accessibility_analysis.ipynb` (from the Wiener Linien GTFS) |
+# | `outputs/gtfs_stops_vienna.csv`, `outputs/vienna_natural_water.geojson`, `outputs/vienna_donau_rivers.geojson` | this notebook, §1: built once from `Data/gtfs.zip` and OpenStreetMap, then cached |
 #
 # **About the smoothed surfaces.** Maps 1–6 are *visual estimates*: cell values are binned to a fine raster and blurred with a Gaussian filter (empty bins do not count as zero), then cut into bands. They are not exact street-network isochrones. Quantities reported in the text should be taken from the cell-level results in `accessibility_analysis.ipynb`.
 #
@@ -20,7 +20,7 @@
 
 # %%
 from pathlib import Path
-import warnings
+import textwrap, warnings
 import numpy as np, pandas as pd, geopandas as gpd
 import matplotlib
 import matplotlib.pyplot as plt
@@ -55,10 +55,26 @@ fac["public"] = fac["TXTATT1"].eq("Öffentlich")
 dist = gpd.read_file(DATA / "BEZIRKSGRENZEOGD.json").to_crs(CRS)
 city = dist.union_all()
 lines = gpd.read_file(OUT / "gtfs_route_lines_vienna.gpkg").to_crs(CRS)
-stops = pd.read_csv(OUT / "gtfs_stops_vienna.csv")
+
+# Map layers, cached in outputs/. They are in the repository; they are only rebuilt if deleted.
+STOPS_FILE = OUT / "gtfs_stops_vienna.csv"
+if not STOPS_FILE.exists():                      # GTFS stops inside Vienna (needs Data/gtfs.zip)
+    import zipfile
+    with zipfile.ZipFile(DATA / "gtfs.zip") as z:
+        s = pd.read_csv(z.open("stops.txt"), usecols=["stop_id", "stop_name", "stop_lat", "stop_lon"], dtype={"stop_id": str})
+    s[gpd.points_from_xy(s.stop_lon, s.stop_lat, crs=4326).within(dist.to_crs(4326).union_all())].to_csv(STOPS_FILE, index=False)
+stops = pd.read_csv(STOPS_FILE)
 stops = gpd.GeoDataFrame(stops, geometry=gpd.points_from_xy(stops.stop_lon, stops.stop_lat), crs=4326).to_crs(CRS)
-water = gpd.read_file(OUT / "vienna_natural_water.geojson").to_crs(CRS)
-donau = gpd.read_file(OUT / "vienna_donau_rivers.geojson").to_crs(CRS)
+
+WATER_FILE, DONAU_FILE = OUT / "vienna_natural_water.geojson", OUT / "vienna_donau_rivers.geojson"
+if not (WATER_FILE.exists() and DONAU_FILE.exists()):   # OpenStreetMap via OSMnx (downloaded Oct 2026; a new download may differ slightly)
+    import osmnx as ox
+    city4326 = dist.to_crs(4326).union_all()
+    rivers = ox.features_from_place("Vienna, Austria", tags={"waterway": "river"})
+    gpd.clip(rivers[rivers["name"].str.contains("Donau", na=False)].to_crs(4326), city4326).to_file(DONAU_FILE, driver="GeoJSON")
+    gpd.clip(ox.features_from_place("Vienna, Austria", tags={"natural": "water"}).to_crs(4326), city4326).to_file(WATER_FILE, driver="GeoJSON")
+water = gpd.read_file(WATER_FILE).to_crs(CRS)
+donau = gpd.read_file(DONAU_FILE).to_crs(CRS)
 
 # Unreachable within the cut-off counts as the cap, so the surface reads "30+" there
 for c in ["nearest_median_min", "nearest_p90_min"]:
@@ -119,16 +135,23 @@ XC, YC = [(e[:-1] + e[1:]) / 2 for e in EDGES]
 XX, YY = np.meshgrid(XC, YC, indexing="ij")
 INSIDE = contains_xy(city, XX, YY)
 
-def smooth(values, weights=None, sigma=4, min_weight=0.02):
-    """Mask-aware Gaussian smoothing of cell values onto the raster; returns (x, y) array."""
-    v = np.asarray(values, float); w = np.ones_like(v) if weights is None else np.asarray(weights, float)
+def rasterise(values, weights, sigma):
+    """Weighted Gaussian smoothing of cell values onto the 400 × 400 raster.
+
+    Sums value × weight and weight per raster bin, blurs both, and divides. Bins without cells therefore do not
+    count as zero: the result is a local weighted mean. Returns (smoothed values, smoothed weight)."""
+    v, w = np.asarray(values, float), np.asarray(weights, float)
     ok = np.isfinite(v) & (w > 0)
     num, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=(v * w)[ok])
     den, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=w[ok])
     num, den = gaussian_filter(num, sigma), gaussian_filter(den, sigma)
-    out = num / np.maximum(den, 1e-12)
-    out[~INSIDE | (den < min_weight * (np.nanmax(den) if weights is not None else 1))] = np.nan
-    return out
+    return num / np.maximum(den, 1e-12), den
+
+def smooth(values, weights=None, sigma=4, min_weight=0.02):
+    """Smoothed surface for whole-city maps; bins outside Vienna or with too little weight are left empty."""
+    Z, den = rasterise(values, np.ones(len(values)) if weights is None else weights, sigma)
+    Z[~INSIDE | (den < min_weight * (np.nanmax(den) if weights is not None else 1))] = np.nan
+    return Z
 
 def bands(ax, Z, levels, colours, contour_at=(), alpha=.72):
     cs = ax.contourf(XX, YY, Z, levels=levels, colors=colours, alpha=alpha, zorder=1, antialiased=True)
@@ -140,12 +163,7 @@ def soft_bands(ax, values, levels, colours, alpha_max=.85, sigma=4, fade=(.005, 
     """Child-weighted banded surface. Opacity rises with the local (smoothed) number of children, from 0 at
     `fade[0]` to full at `fade[1]` (shares of the maximum), so sparsely populated fringes blend into grey instead of
     ending at a hard edge, and the extreme values of cells with very few children carry little visual weight."""
-    v = np.asarray(values, float); w = grid["children_u6"].to_numpy(float)
-    ok = np.isfinite(v) & (w > 0)
-    num, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=(v * w)[ok])
-    den, _, _ = np.histogram2d(GX[ok], GY[ok], bins=EDGES, weights=w[ok])
-    num, den = gaussian_filter(num, sigma), gaussian_filter(den, sigma)
-    Z = num / np.maximum(den, 1e-12)
+    Z, den = rasterise(values, grid["children_u6"], sigma)
     lo, hi = fade[0] * den.max(), fade[1] * den.max()
     A = np.clip((den - lo) / (hi - lo), 0, 1) * alpha_max
     A[~INSIDE] = 0
@@ -189,7 +207,6 @@ def map_legend(ax, sites="generic", empty=True, loc="upper left"):
 
 def note(ax, text, xy=(.015, .985), width=52, va="top"):
     """Explanatory note in a white box (axes coordinates)."""
-    import textwrap
     body = "\n\n".join(textwrap.fill(par, width) for par in text.split("\n\n"))
     ax.text(*xy, body, transform=ax.transAxes, fontsize=11.5, va=va, ha="left", zorder=30, color="#0b0b0b",
             bbox=dict(boxstyle="round,pad=.6", facecolor="white", edgecolor="#c9c8c3", alpha=.95))
@@ -205,6 +222,8 @@ def title(ax, main, sub=None):
     ax.set_title(main + (f"\n{sub}" if sub else ""), loc="left", fontsize=16 if not sub else 15, pad=10)
 
 def save(fig, name):
+    """Save to outputs/maps/. Axis labels are removed from the maps (GeoPandas can leave coordinate labels);
+    colourbar labels and labels ending in an arrow are kept."""
     for a in fig.axes:
         a.set_xlabel(a.get_xlabel() if a.get_label() == "<colorbar>" or a.get_xlabel().endswith("→") else "")
         a.set_ylabel(a.get_ylabel() if a.get_ylabel().endswith("→") else "")
@@ -377,7 +396,7 @@ agg = k.groupby("SUB_DISTRICT_CODE").apply(lambda d: pd.Series({
     "dv2r": np.average(d.dv2_reliable, weights=d.w), "status": np.average(d[STATUS], weights=d.w), "children": d.w.sum()}),
     include_groups=False).reset_index()
 
-def wterc(s, w):
+def wterc(s, w):            # child-weighted terciles 0/1/2, as wtercile() in the analysis notebook
     o = s.sort_values(kind="mergesort").index; c = w.loc[o].cumsum() / w.sum()
     return pd.Series(np.select([c <= 1/3, c <= 2/3], [0, 1], 2), index=o).reindex(s.index)
 agg["a3"], agg["s3"] = wterc(agg.dv2r, agg.children), wterc(agg.status, agg.children)
@@ -429,7 +448,7 @@ d = kids.groupby("DISTRICT_CODE").apply(lambda g: pd.Series({
     "dv2r": np.average(g.dv2_reliable.fillna(0), weights=g.children_u6),
     "median_min": np.average(g.nearest_median_min_capped, weights=g.children_u6),
     "children": g.children_u6.sum()}), include_groups=False).reset_index()
-d["BEZNR"] = (d.DISTRICT_CODE // 100 - 900).astype(int) if d.DISTRICT_CODE.max() > 100 else d.DISTRICT_CODE.astype(int)
+d["BEZNR"] = ((d.DISTRICT_CODE - 90000) // 100).astype(int)          # 90300 -> 3
 dd = dist.assign(BEZNR=dist["BEZNR"].astype(int)).merge(d, on="BEZNR", how="left")
 D_LEVELS = list(np.quantile(dd.dv2r, np.linspace(0, 1, 7)).round(0)); D_LEVELS[0] -= 1; D_LEVELS[-1] += 1
 D_COLOURS = LinearSegmentedColormap.from_list("b", BLUE[1:])(np.linspace(0, 1, len(D_LEVELS) - 1))

@@ -24,8 +24,9 @@
 | `outputs/routing_origins.csv`, `routing_destinations.csv` | Core | The 6,950 cells (`origin_id` o0…, cell code, routing point) and 1,682 sites, written by `routing.ipynb`. **Row order of every cell table and matrix** |
 | `outputs/origin_destination_matrices_1min/*.npz` (85 MB, *release*) | Core | **The travel times:** 60 one-minute departures 07:30–08:29 (Tue 20 Oct 2026), 6,950 cells × 1,682 sites each, from `routing.ipynb`. All access measures come from these |
 | `outputs/nearest_site_time_by_cell.csv` | Supporting | Time to the nearest site per cell over the 60 departures (median, p90, SD, share within 15 min), from `routing.ipynb` §4. Used by the maps |
-| `outputs/gtfs_stop_departures_5min.csv`, `gtfs_route_lines_vienna.gpkg`, `gtfs_stops_vienna.csv` | Supporting | Caches built from `gtfs.zip`: scheduled departures per 5 min (analysis Fig. 5), route lines and stops for maps |
-| `outputs/vienna_natural_water.geojson`, `vienna_donau_rivers.geojson` | Supporting | Water layers for maps (OpenStreetMap via OSMnx) |
+| `outputs/gtfs_stop_departures_5min.csv`, `gtfs_route_lines_vienna.gpkg` | Supporting | Built from `gtfs.zip` by `accessibility_analysis.ipynb` when missing: scheduled departures per 5 min (Fig. 5) and route lines for maps |
+| `outputs/gtfs_stops_vienna.csv`, `Data/socioeconomic/processed/ubahn_stops.csv` | Supporting | Built from `gtfs.zip` when missing: stops inside Vienna (by `access_maps.ipynb`, for maps) and stops served by the U-Bahn (by `accessibility_analysis.ipynb`, for the U-Bahn control) |
+| `outputs/vienna_natural_water.geojson`, `vienna_donau_rivers.geojson` | Supporting | Water layers for maps, downloaded from OpenStreetMap (October 2026) by `access_maps.ipynb` when missing |
 | `Data/BEZIRKSGRENZEOGD.json` | Supporting | District boundaries: routing mask, maps |
 | `outputs/origin_destination_matrices/*.npz`, `outputs/accessibility_metrics.csv` (*local only*) | Unused | The October 6-departure routing (10-min windows) and its per-cell summary. Superseded by the 1-minute routing; `routing_origins.csv` replaces the ids the EDA used to read from `accessibility_metrics.csv` |
 

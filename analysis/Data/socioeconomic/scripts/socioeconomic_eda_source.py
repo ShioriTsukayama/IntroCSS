@@ -35,7 +35,7 @@
 # |---|---|---|
 # | Extract Vienna from Statistik Austria's national INSPIRE files | `parse_inspire.py` | zipped GML (0.15–0.8 GB) → `raw/statistik_inspire/vienna_extracts/*.csv` (long format: unit, dimension, value, status) |
 # | Scrape rental adverts | `scrape_willhaben.py` | willhaben search pages → `raw/willhaben_rents_2026-11-16.csv` |
-# | Clean adverts, build rent index | `build_rent_index.py` | raw adverts → `processed/willhaben_listings_clean.gpkg`, `processed/zsp_rent_index.csv`, `processed/rent_index_cleaning_log.csv` |
+# | Clean adverts, build rent index | `build_rent_index.py` | raw adverts + Zählsprengel and Zählbezirk boundaries → `processed/willhaben_listings_clean.gpkg`, `processed/zsp_rent_index.csv`, `processed/rent_index_cleaning_log.csv` |
 # | Load and clean every source | this notebook §2 | raw files → in-memory tables; all cleaning rules and checks in **§2h** |
 # | Link units, build variables | this notebook §3 | → one row per 250 m cell |
 # | Check coverage, save | this notebook §5 | → `processed/grid250_analysis.gpkg`, `zaehlbezirke_analysis.gpkg/.csv`, `data_dictionary.csv` |
@@ -61,9 +61,9 @@ warnings.filterwarnings("ignore", message=".*keep_geom_type.*")   # overlay() dr
 pd.set_option("display.max_columns", 40)
 pd.set_option("display.width", 160)
 
-_candidates = [Path.cwd(), *Path.cwd().parents]
-_candidates += [p / "'My' Code" for p in _candidates.copy()]
-NOTEBOOK_DIR = next(p for p in _candidates if (p / "Data" / "KINDERGARTENOGD.json").exists())
+# The project folder (analysis/) is found by looking upwards for the childcare file, so the notebook also runs
+# when started from a subfolder.
+NOTEBOOK_DIR = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "Data" / "KINDERGARTENOGD.json").exists())
 DATA = NOTEBOOK_DIR / "Data"
 RAW = DATA / "socioeconomic" / "raw"
 PROC = DATA / "socioeconomic" / "processed"
@@ -95,11 +95,13 @@ print("project folder:", NOTEBOOK_DIR.name)
 # %%
 def read_wien_csv(name):
     """Read an MA 23 open-data CSV into numeric columns."""
-    for enc in ("utf-8-sig", "latin-1"):
+    for enc in ("utf-8-sig", "latin-1"):           # the files are not consistently encoded
         try:
             df = pd.read_csv(RAW / name, sep=";", skiprows=1, encoding=enc, dtype=str); break
         except UnicodeDecodeError:
             continue
+    else:
+        raise ValueError(f"{name}: neither UTF-8 nor Latin-1")
     df = df.loc[:, ~df.columns.str.startswith("Unnamed")].rename(columns={"SUB_DISCTRICT_CODE": "SUB_DISTRICT_CODE"})
     for col in df.columns:
         if col == "NUTS":

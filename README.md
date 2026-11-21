@@ -50,12 +50,20 @@ Hypotheses, the current status, outstanding work and limitations are set out in 
 
 ## Reproducing the analysis
 
+The analysis was run in a Python 3.14 virtual environment; `requirements.txt` lists its exact packages (including r5py 1.1.7).
+
 ```bash
-pip install geopandas matplotlib scipy statsmodels nbformat jupyter
+git clone https://github.com/ShioriTsukayama/IntroCSS.git
+cd IntroCSS
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 python get_data.py                       # downloads the 60 travel-time matrices (85 MB) from the GitHub release
 cd analysis
 jupyter notebook
 ```
+
+Java 21 (for example `brew install openjdk@21`) is needed only by `routing.ipynb` when it routes from scratch; with the downloaded matrices the notebooks run without it. Routing from scratch additionally requires `python get_data.py --routing`, which downloads the timetable, street network and population grid.
 
 The notebooks run in the following order. Each reads only the outputs of the preceding notebooks, so the analysis can be resumed at any step:
 
@@ -66,7 +74,26 @@ The notebooks run in the following order. Each reads only the outputs of the pre
 | `accessibility_analysis.ipynb` | Access measures (DV1, DV2R, DV2, DV3), regressions, figures 1–9 → `outputs/analysis/` | ~1 min, ~4 GB RAM |
 | `access_maps.ipynb` | Presentation maps: travel time, reliability, DV2R, public vs private, access × status → `outputs/maps/` | ~20 s |
 
-Each notebook is generated from a script in `analysis/Data/socioeconomic/scripts/*_source.py` by `py_to_ipynb.py`. Changes should be made in the script, after which the notebook is regenerated and executed.
+Each notebook is generated from a script in `analysis/Data/socioeconomic/scripts/*_source.py` by `py_to_ipynb.py`. Changes should be made in the script, after which the notebook is regenerated and executed:
+
+```bash
+cd analysis
+python Data/socioeconomic/scripts/py_to_ipynb.py Data/socioeconomic/scripts/access_maps_source.py access_maps.ipynb
+jupyter nbconvert --to notebook --execute --inplace access_maps.ipynb
+```
+
+All four notebooks were last executed on 21 November 2026 in this environment (Python 3.14.6); the saved tables and figures are reproduced to rounding precision.
+
+**Inputs built before the notebooks.** The processed inputs are in the repository, so the scripts below are needed only to rebuild them. They are in `analysis/Data/socioeconomic/scripts/` and are run with `python -I`.
+
+| Script | Builds | Needs |
+|---|---|---|
+| `parse_inspire.py` | Vienna extracts of the Statistik Austria INSPIRE files (`raw/statistik_inspire/vienna_extracts/`) | the national INSPIRE zips (not in the repository; see `docs/data_sources_and_merging_guide.md`) |
+| `scrape_willhaben.py` | the raw rental advertisements | access to willhaben.at (see "Web scraping and ethics") |
+| `build_rent_index.py` | the rent index per Zählsprengel (`processed/zsp_rent_index.csv`) | the raw advertisements (not in the repository) |
+| `clip_osm_vienna.py` | the Vienna street network for routing | the Geofabrik Austria extract and `osmium` |
+
+`build_inspire_tables.py` and `official_children_250.py` are validation checks from 13 November 2026 and are not part of the pipeline; `rent_index_toy_example.py` reproduces the worked example in `docs/rent_measure_reference.md`.
 
 ## Variables
 
@@ -131,13 +158,18 @@ Paths in the documents are relative to `analysis/`, referred to there as the pro
 - **Unused raw data** (for example the JRC GHSL population grid, the Eurostat 1 km census grid and population projections), listed in `docs/data_inventory.md`.
 - **Literature** (copyrighted PDFs).
 
-## Updating the repository
+## Web scraping and ethics
 
-The repository is the working copy of the project folder on Stash's computer. Changes there are committed and pushed automatically once an hour. Before each push, changes made on GitHub are merged in, so contributions from other team members are preserved. To contribute:
+The rent-based status measure is built from asking rents in rental advertisements on willhaben.at, collected on 16 November 2026 with `analysis/Data/socioeconomic/scripts/scrape_willhaben.py`. Of 5,347 advertisements collected, 4,071 were retained after cleaning (`rent_index_cleaning_log.csv`).
 
-1. Clone the repository (or `git pull` before starting work).
-2. Commit and push changes as usual.
-3. Avoid editing the same notebook at the same time as another team member: notebooks do not merge cleanly. If an automatic update meets a conflicting change, it stops and reports the conflict instead of overwriting it.
+- **Terms of access.** willhaben's `robots.txt` disallows automated access, and the scraper sends a browser User-Agent string rather than identifying itself as a research client. The research team decided to proceed for this non-commercial course project, in the absence of an open data source for small-area rents in Vienna. Re-running the scraper is subject to the same terms and is not required to reproduce the analysis.
+- **Minimal footprint.** The scraper requests only the public search-result pages (about 60 requests in total), waits 6–10 seconds between requests, and does not use the URL parameters that `robots.txt` excludes.
+- **Data minimisation.** Only the attributes needed for a rent index are stored: price, floor area, number of rooms, property type, floor and location. Headings, descriptions, photographs, advertiser names and contact details are not collected.
+- **No redistribution of advertisements.** The individual advertisements are third-party content with street-level locations and are not included in this repository. Only the aggregated index per Zählsprengel (`zsp_rent_index.csv`) is shared, together with the code that produces it (`scrape_willhaben.py`, `build_rent_index.py`).
+
+## Use of AI assistance
+
+The code in this repository was written with the assistance of Claude, an AI model by Anthropic. The research design, including the choice of replication target, measures, hypotheses and models, is the authors' own, and the authors checked the results. The documentation and this README were also drafted with Claude's assistance.
 
 ## References
 

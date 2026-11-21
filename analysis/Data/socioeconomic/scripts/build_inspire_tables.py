@@ -1,5 +1,12 @@
-"""Turn the Vienna INSPIRE extracts into wide tables and compare with the existing births proxy.
-Run from Data/socioeconomic with: python -I <this script>
+"""Validation check (13 Nov 2026), not a step of the pipeline: the analysis does not read its outputs.
+
+Turns the Vienna INSPIRE extracts into wide Zählsprengel tables and compares the official counts with the
+births-based child estimate used before the official data were available (agreement at Zählbezirk level:
+r = 0.97; see docs/data_sources_and_merging_guide.md §2a). Writes processed/zaehlsprengel_2026_inspire.*
+and processed/grid250_pop_official_2026.csv for reference.
+
+It reads processed/grid250_analysis.gpkg and zaehlbezirke_analysis.*, so it can only run after
+socioeconomic_eda.ipynb. Run from Data/socioeconomic with: python -I scripts/build_inspire_tables.py
 """
 import numpy as np
 import pandas as pd

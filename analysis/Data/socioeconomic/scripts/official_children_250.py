@@ -1,7 +1,10 @@
 """Official-data child estimate per 250 m cell:
 Zählsprengel 0-4 (+1/5 of 5-9 ~ age 5) spread over the official 100 m population grid (dasymetric),
 then 100 m cells split onto the 250 m analysis grid by area (areal weighting).
-Run from Data/socioeconomic with python -I.
+Run from Data/socioeconomic with python -I, after build_inspire_tables.py.
+
+Validation check (13 Nov 2026), not a step of the pipeline: socioeconomic_eda.ipynb §3b now performs the same
+allocation itself, and its output (processed/grid250_children_official_2026.csv) is not read by the analysis.
 """
 import numpy as np
 import pandas as pd

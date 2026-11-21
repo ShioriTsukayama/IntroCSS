@@ -152,6 +152,8 @@ One table, one row per variable:
 Scripts are in `Data/socioeconomic/scripts/`. Run them from `Data/socioeconomic` with `python -I`. They produced the files in `raw/statistik_inspire/vienna_extracts/` and `processed/`; the national INSPIRE zips they read (0.15–0.8 GB) are not in the repository.
 
 1. `parse_inspire.py <zip> <out.csv> zsp|grid` reads the GML (the EU's XML format for map data) directly from the zip and keeps Vienna only. Extracted, the full files are 0.15–0.8 GB each, so do not unzip them.
+Steps 2 and 3 are validation checks (13 Nov 2026), not part of the pipeline: they read outputs of `socioeconomic_eda.ipynb` and the analysis does not read theirs.
+
 2. `build_inspire_tables.py`:
    - turns the files into Zählsprengel tables, adds employment shares and the overlap link to Zählbezirke;
    - spreads 100 m population onto the 250 m grid by area;

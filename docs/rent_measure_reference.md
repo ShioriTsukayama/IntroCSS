@@ -217,7 +217,7 @@ Scripts are in `Data/socioeconomic/scripts/`; run them from `Data/socioeconomic`
 | 7 | Inside a Vienna Zählsprengel polygon | 1 | **4,071** | Edge case |
 
 * Rent per m² = `PRICE` ÷ area, where area is living area, else usable area, else total area.
-* Coordinates are projected to EPSG:3035 (metres) and joined to Zählsprengel polygons (`processed/zaehlsprengel_2026_inspire.gpkg`) by point-in-polygon.
+* Coordinates are projected to EPSG:3035 (metres) and joined to Zählsprengel polygons (`raw/statistik_zsp_boundaries_2026/`) by point-in-polygon.
 * The log is saved to `processed/rent_index_cleaning_log.csv`.
 
 ### 4.3 Hedonic model (`build_rent_index.py`, part 2)

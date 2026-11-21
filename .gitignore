@@ -5,6 +5,7 @@
 !/.gitignore
 !/README.md
 !/get_data.py
+!/requirements.txt
 !/docs/
 
 !/analysis/

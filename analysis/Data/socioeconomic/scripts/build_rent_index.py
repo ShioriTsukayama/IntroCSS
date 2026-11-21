@@ -2,7 +2,8 @@
 
     python -I scripts/build_rent_index.py raw/willhaben_rents_<date>.csv
 
-Run from Data/socioeconomic. Writes
+Run from Data/socioeconomic. Reads the raw adverts and three raw files that are in the repository
+(Zählsprengel boundaries, Zählsprengel residents, Zählbezirk boundaries). Writes
 * processed/willhaben_listings_clean.gpkg   one row per kept listing (+ hedonic residual)
 * processed/zsp_rent_index.csv              one row per Zählsprengel: rent index + sample size
 * processed/rent_index_cleaning_log.csv     how many listings each rule removed
@@ -23,6 +24,32 @@ import statsmodels.formula.api as smf
 from scipy.spatial import cKDTree
 
 CRS = "EPSG:3035"
+
+
+def zaehlsprengel():
+    """Zählsprengel polygons with residents (1 Jan 2026) and the Zählbezirk holding most of their area.
+
+    Built from raw files only. Zählsprengel codes do not contain the Zählbezirk, so the two boundary sets
+    are overlaid, as in socioeconomic_eda.ipynb §3a.
+    """
+    zsp = gpd.read_file("raw/statistik_zsp_boundaries_2026/zsp_2026_vienna.geojson").to_crs(CRS)
+    zsp = zsp.rename(columns={"g_id": "zsp_id"})[["zsp_id", "geometry"]]
+    ages = pd.read_csv("raw/statistik_inspire/vienna_extracts/pd_popreg_zsp_7767c34f.csv", dtype={"unit_id": str})
+    total = ages[ages["dim"] == "TOTAL"].set_index("unit_id")["value"]
+    zsp["pop_total"] = zsp["zsp_id"].map(pd.to_numeric(total, errors="coerce"))     # NaN: no population record
+    zbz = gpd.read_file("raw/ZAEHLBEZIRKOGD.json").to_crs(CRS)
+    zbz["SUB_DISTRICT_CODE"] = 90000 + zbz["ZBEZ"].astype(int)                       # '0307' -> 90307
+    ov = gpd.overlay(zsp, zbz[["SUB_DISTRICT_CODE", "geometry"]], how="intersection", keep_geom_type=True)
+    ov["a"] = ov.area
+    main = ov.sort_values("a", ascending=False).drop_duplicates("zsp_id").set_index("zsp_id")
+    zsp["zbz_code"] = zsp["zsp_id"].map(main["SUB_DISTRICT_CODE"]).astype(float)
+    # Zählsprengel in neither Statistik Austria table (22 without residents, such as parks and rail yards) get no
+    # Zählbezirk; this only affects the descriptive Zählbezirk medians, not the index.
+    emp = pd.read_csv("raw/statistik_inspire/vienna_extracts/pd_aest_zsp_77681182.csv", dtype={"unit_id": str}, usecols=["unit_id"])
+    zsp.loc[~zsp["zsp_id"].isin(set(ages["unit_id"]) | set(emp["unit_id"])), "zbz_code"] = np.nan
+    return zsp[["zsp_id", "zbz_code", "pop_total", "geometry"]]
+
+
 src = sys.argv[1]
 raw = pd.read_csv(src, dtype=str)
 log = [("scraped", len(raw))]
@@ -55,7 +82,7 @@ key = [df.lat.round(4), df.lon.round(4), df.area_m2.round(0), df.rent.round(0)]
 df = step(df, ~pd.concat(key, axis=1).duplicated(), "duplicate listing (same place, area, rent)")
 
 g = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat), crs=4326).to_crs(CRS)
-zsp = gpd.read_file("processed/zaehlsprengel_2026_inspire.gpkg")[["zsp_id", "zbz_code", "pop_total", "geometry"]].to_crs(CRS)
+zsp = zaehlsprengel()
 g = gpd.sjoin(g, zsp[["zsp_id", "zbz_code", "geometry"]], predicate="within", how="left").drop(columns="index_right")
 g = step(g, g.zsp_id.notna(), "outside Vienna's Zählsprengel")
 

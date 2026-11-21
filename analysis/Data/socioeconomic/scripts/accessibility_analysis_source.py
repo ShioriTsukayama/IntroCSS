@@ -207,7 +207,18 @@ grid["rent_eur_m2_std"] = pd.to_numeric(grid["zsp_id"]).map(rent.set_index(pd.to
 print("cells with a rent value:", grid.rent_eur_m2_std.notna().sum(), "of", len(grid),
       f"| children covered: {grid.loc[grid.rent_eur_m2_std.notna(), 'children_u6'].sum():,.0f} of {D.sum():,.0f}")
 
-ub = pd.read_csv(PROC / "ubahn_stops.csv")          # U-Bahn stops (route_type 1) extracted from gtfs.zip
+UBAHN_FILE = PROC / "ubahn_stops.csv"               # stops served by U-Bahn trips; in the repository, rebuilt from gtfs.zip only if deleted
+if not UBAHN_FILE.exists():
+    with zipfile.ZipFile(DATA / "gtfs.zip") as z:
+        st = pd.read_csv(z.open("stops.txt"), usecols=["stop_id", "stop_name", "stop_lat", "stop_lon"], dtype={"stop_id": str})
+        tr = pd.read_csv(z.open("trips.txt"), usecols=["trip_id", "route_id"], dtype=str)
+        ro = pd.read_csv(z.open("routes.txt"), usecols=["route_id", "route_type"], dtype=str)
+        u_trips = set(tr.merge(ro, on="route_id").query("route_type == '1'").trip_id)     # route_type 1 = metro
+        u_stops = set()
+        for ch in pd.read_csv(z.open("stop_times.txt"), usecols=["trip_id", "stop_id"], dtype=str, chunksize=3_000_000):
+            u_stops |= set(ch.loc[ch.trip_id.isin(u_trips), "stop_id"])
+    st[st.stop_id.isin(u_stops)].to_csv(UBAHN_FILE, index=False)
+ub = pd.read_csv(UBAHN_FILE)
 ub = gpd.GeoDataFrame(ub, geometry=gpd.points_from_xy(ub.stop_lon, ub.stop_lat), crs=4326).to_crs(GRID_CRS)
 grid["ubahn_in_cell"] = grid.index.isin(gpd.sjoin(grid[["geometry"]], ub[["geometry"]], predicate="contains").index).astype(int)
 grid["log_child_density"] = np.log1p(grid["children_u6"] / CELL_KM2)
@@ -623,7 +634,7 @@ if not LINES_CACHE.exists():                                   # build once from
     lines = gpd.clip(lines, dist.union_all()).dissolve("route_type").reset_index()
     lines.to_file(LINES_CACHE, driver="GPKG")
 lines = gpd.read_file(LINES_CACHE)
-water = gpd.read_file(OUT / "vienna_natural_water.geojson").to_crs(GRID_CRS)
+water = gpd.read_file(OUT / "vienna_natural_water.geojson").to_crs(GRID_CRS)    # OpenStreetMap layers, built by access_maps.ipynb
 donau = gpd.read_file(OUT / "vienna_donau_rivers.geojson").to_crs(GRID_CRS)
 
 def overlays(ax):
